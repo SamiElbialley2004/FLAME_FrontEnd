@@ -1,13 +1,24 @@
-class  extends StatefulWidget {
-  const ({super.key});
+import 'package:flutter/material.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<> createState() => _State();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _State extends State<> {
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Home Page"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: const Center(
+        child: Text("Welcome to FLAME!"),
+      ),
+    );
   }
 }
