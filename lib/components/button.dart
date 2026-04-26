@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 
 class MyButton extends StatelessWidget {
-
   final Function()? onTap;
   final String text;
 
-  const MyButton({
-    super.key,
-    required this.onTap,
-    required this.text,
-  });
+  const MyButton({super.key, required this.onTap, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +14,7 @@ class MyButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        splashColor: Colors.white.withOpacity(0.2),
+        splashColor: Colors.white.withValues(alpha: 0.2),
         child: GestureDetector(
           onTap: onTap,
           child: Container(
@@ -33,7 +28,7 @@ class MyButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                  color: Colors.black.withValues(alpha: 0.25),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
