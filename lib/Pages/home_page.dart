@@ -1,8 +1,9 @@
 import 'dart:ui';
-
+import 'package:flame/components/app_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'workshop_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -111,9 +112,19 @@ class _HomePageState extends State<HomePage> {
           const _TopHeader(),
         ],
       ),
-      bottomNavigationBar: _BottomNav(
-        selectedIndex: _selectedNavIndex,
-        onTap: (index) async {
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: 0,
+        onTap: (index) {
+          if (index == 0) return;
+
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WorkshopPage()),
+            );
+            return;
+          }
+
           if (index == 4) {
             Navigator.push(
               context,
@@ -121,10 +132,6 @@ class _HomePageState extends State<HomePage> {
             );
             return;
           }
-
-          setState(() {
-            _selectedNavIndex = index;
-          });
         },
       ),
     );
@@ -411,7 +418,7 @@ class _BottomNav extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
     return SafeArea(
       top: false,
       child: Container(
