@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'profile_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -114,7 +115,11 @@ class _HomePageState extends State<HomePage> {
         selectedIndex: _selectedNavIndex,
         onTap: (index) async {
           if (index == 4) {
-            await _showProfileActions();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+            return;
           }
 
           setState(() {

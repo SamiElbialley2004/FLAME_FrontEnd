@@ -25,4 +25,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-     - images/FLAME_LOGO.png
+     - assets/images/FLAME_LOGO.png
+     - assets/images/my_image.jpg
+     - assets/images/profile_image.jpg
