@@ -2,7 +2,9 @@ import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'Communities screen.dart';
 import 'profile_screen.dart';
+import 'communities_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,7 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedNavIndex = 0;
-
+  final Set<int> _likedVideos = {};
   final List<_VideoItem> _videos = const [
     _VideoItem(
       creatorName: 'Dr. Amina',
@@ -94,22 +96,49 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildFeed() {
+    return Stack(
+      children: [
+        PageView.builder(
+          scrollDirection: Axis.vertical,
+          itemCount: _videos.length,
+          itemBuilder: (context, index) {
+            final video = _videos[index];
+            return _VideoCard(
+              item: video,
+              index: index,
+              onCreateTap: _openCreateMenu,
+            );
+          },
+        ),
+        const _TopHeader(),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholder(String label) {
+    return Center(
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white54, fontSize: 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      _buildFeed(),
+      _buildPlaceholder('Workshops'),
+      _buildPlaceholder('Events'),
+      const CommunitiesScreen(),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
-      body: Stack(
-        children: [
-          PageView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: _videos.length,
-            itemBuilder: (context, index) {
-              final video = _videos[index];
-              return _VideoCard(item: video, onCreateTap: _openCreateMenu);
-            },
-          ),
-          const _TopHeader(),
-        ],
+      body: IndexedStack(
+        index: _selectedNavIndex,
+        children: screens,
       ),
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedNavIndex,
@@ -121,7 +150,6 @@ class _HomePageState extends State<HomePage> {
             );
             return;
           }
-
           setState(() {
             _selectedNavIndex = index;
           });
@@ -130,6 +158,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+// ─── Top Header ──────────────────────────────────────────────────────────────
 
 class _TopHeader extends StatelessWidget {
   const _TopHeader();
@@ -140,36 +170,33 @@ class _TopHeader extends StatelessWidget {
       top: 0,
       left: 0,
       right: 0,
-      child: IgnorePointer(
-        ignoring: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xAA000000), Color(0x00000000)],
-            ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xAA000000), Color(0x00000000)],
           ),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                const _BrandLogo(),
-                const Spacer(),
-                _IconCircleButton(
-                  icon: Icons.notifications_outlined,
-                  label: 'Notifications',
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 8),
-                _IconCircleButton(
-                  icon: Icons.send_outlined,
-                  label: 'Direct messages',
-                  onPressed: () {},
-                ),
-              ],
-            ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Row(
+            children: [
+              const _BrandLogo(),
+              const Spacer(),
+              _IconCircleButton(
+                icon: Icons.notifications_outlined,
+                label: 'Notifications',
+                onPressed: () {},
+              ),
+              const SizedBox(width: 8),
+              _IconCircleButton(
+                icon: Icons.send_outlined,
+                label: 'Direct messages',
+                onPressed: () {},
+              ),
+            ],
           ),
         ),
       ),
@@ -208,10 +235,17 @@ class _BrandLogo extends StatelessWidget {
   }
 }
 
+// ─── Video Card ───────────────────────────────────────────────────────────────
+
 class _VideoCard extends StatelessWidget {
-  const _VideoCard({required this.item, required this.onCreateTap});
+  const _VideoCard({
+    required this.item,
+    required this.index,
+    required this.onCreateTap,
+  });
 
   final _VideoItem item;
+  final int index;
   final Future<void> Function() onCreateTap;
 
   @override
@@ -231,7 +265,11 @@ class _VideoCard extends StatelessWidget {
         Positioned(
           right: 12,
           bottom: 145,
-          child: _SideActions(item: item, onCreateTap: onCreateTap),
+          child: _SideActions(
+            item: item,
+            index: index,
+            onCreateTap: onCreateTap,
+          ),
         ),
         Positioned(
           left: 12,
@@ -249,6 +287,8 @@ class _VideoCard extends StatelessWidget {
     );
   }
 }
+
+// ─── Learning Context Card ────────────────────────────────────────────────────
 
 class _LearningContext extends StatelessWidget {
   const _LearningContext({required this.item});
@@ -348,50 +388,173 @@ class _LearningContext extends StatelessWidget {
   }
 }
 
-class _SideActions extends StatelessWidget {
-  const _SideActions({required this.item, required this.onCreateTap});
+// ─── Comments Sheet ───────────────────────────────────────────────────────────
+
+void _showComments(BuildContext context, _VideoItem item) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF111113),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text(
+              'Comments',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Divider(color: Colors.white24),
+            ListTile(
+              title: Text(
+                'Nice video!',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                'User1',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            ListTile(
+              title: Text(
+                'Very helpful 🔥',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                'User2',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// ─── Share Sheet ──────────────────────────────────────────────────────────────
+
+void _showShareSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF111113),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          children: const [
+            ListTile(
+              leading: Icon(Icons.copy, color: Colors.white),
+              title: Text(
+                'Copy link',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.share, color: Colors.green),
+              title: Text(
+                'WhatsApp',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.share, color: Colors.orange),
+              title: Text('More', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// ─── Side Actions ─────────────────────────────────────────────────────────────
+
+class _SideActions extends StatefulWidget {
+  const _SideActions({
+    required this.item,
+    required this.index,
+    required this.onCreateTap,
+  });
 
   final _VideoItem item;
+  final int index;
   final Future<void> Function() onCreateTap;
 
   @override
+  State<_SideActions> createState() => _SideActionsState();
+}
+
+class _SideActionsState extends State<_SideActions> {
+  @override
   Widget build(BuildContext context) {
+    final home = context.findAncestorStateOfType<_HomePageState>()!;
+
     return Column(
       children: [
         _ActionIcon(
-          icon: Icons.favorite_border,
+          icon: home._likedVideos.contains(widget.index)
+              ? Icons.favorite
+              : Icons.favorite_border,
           label: 'Like',
-          value: item.likes,
+          value: widget.item.likes,
+          color: home._likedVideos.contains(widget.index)
+              ? const Color(0xFFFB923C)
+              : Colors.white,
+          onTap: () {
+            setState(() {
+              if (home._likedVideos.contains(widget.index)) {
+                home._likedVideos.remove(widget.index);
+              } else {
+                home._likedVideos.add(widget.index);
+              }
+            });
+          },
         ),
         const SizedBox(height: 16),
         _ActionIcon(
-          icon: Icons.chat_bubble_outline,
-          label: 'Comment',
-          value: item.comments,
+          icon: Icons.comment_outlined,
+          label: 'Comments',
+          value: widget.item.comments,
+          onTap: () => _showComments(context, widget.item),
         ),
         const SizedBox(height: 16),
-        const _ActionIcon(
-          icon: Icons.reply_outlined,
+        _ActionIcon(
+          icon: Icons.share_outlined,
           label: 'Share',
           value: 'Share',
+          onTap: () => _showShareSheet(context),
         ),
         const SizedBox(height: 16),
-        _CreateActionIcon(onTap: onCreateTap),
+        _CreateActionIcon(onTap: widget.onCreateTap),
       ],
     );
   }
 }
+
+// ─── Action Icon ──────────────────────────────────────────────────────────────
 
 class _ActionIcon extends StatelessWidget {
   const _ActionIcon({
     required this.icon,
     required this.label,
     required this.value,
+    this.color,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -399,10 +562,13 @@ class _ActionIcon extends StatelessWidget {
       icon: icon,
       label: label,
       value: value,
-      onTap: () {},
+      onTap: onTap ?? () {},
+      color: color,
     );
   }
 }
+
+// ─── Bottom Nav ───────────────────────────────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.selectedIndex, required this.onTap});
@@ -496,6 +662,8 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+// ─── Create Action Icon ───────────────────────────────────────────────────────
+
 class _CreateActionIcon extends StatelessWidget {
   const _CreateActionIcon({required this.onTap});
 
@@ -539,6 +707,8 @@ class _CreateActionIcon extends StatelessWidget {
     );
   }
 }
+
+// ─── Create Menu Sheet ────────────────────────────────────────────────────────
 
 class _CreateMenuSheet extends StatelessWidget {
   const _CreateMenuSheet();
@@ -651,6 +821,8 @@ class _CreateOptionTile extends StatelessWidget {
   }
 }
 
+// ─── Feed Search Bar ──────────────────────────────────────────────────────────
+
 class _FeedSearchBar extends StatelessWidget {
   const _FeedSearchBar();
 
@@ -670,7 +842,9 @@ class _FeedSearchBar extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.orange.withValues(alpha: 0.35)),
+          borderSide: BorderSide(
+            color: Colors.orange.withValues(alpha: 0.35),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -680,6 +854,8 @@ class _FeedSearchBar extends StatelessWidget {
     );
   }
 }
+
+// ─── Icon Circle Button ───────────────────────────────────────────────────────
 
 class _IconCircleButton extends StatelessWidget {
   const _IconCircleButton({
@@ -706,18 +882,22 @@ class _IconCircleButton extends StatelessWidget {
   }
 }
 
+// ─── Hoverable Action Button ──────────────────────────────────────────────────
+
 class _HoverableActionButton extends StatefulWidget {
   const _HoverableActionButton({
     required this.icon,
     required this.label,
     required this.value,
     required this.onTap,
+    this.color,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final VoidCallback onTap;
+  final Color? color;
 
   @override
   State<_HoverableActionButton> createState() => _HoverableActionButtonState();
@@ -745,8 +925,10 @@ class _HoverableActionButtonState extends State<_HoverableActionButton> {
             child: IconButton(
               onPressed: widget.onTap,
               tooltip: widget.label,
-              color: Colors.white,
-              icon: Icon(widget.icon),
+              icon: Icon(
+                widget.icon,
+                color: widget.color ?? Colors.white,
+              ),
             ),
           ),
         ),
@@ -763,6 +945,8 @@ class _HoverableActionButtonState extends State<_HoverableActionButton> {
     );
   }
 }
+
+// ─── Video Item Model ─────────────────────────────────────────────────────────
 
 class _VideoItem {
   const _VideoItem({
