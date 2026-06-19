@@ -2,104 +2,104 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 
-class WorkshopPage extends StatefulWidget {
-  const WorkshopPage({super.key});
+class EventsPage extends StatefulWidget {
+  const EventsPage({super.key});
 
   @override
-  State<WorkshopPage> createState() => _WorkshopPageState();
+  State<EventsPage> createState() => _EventsPageState();
 }
 
-class _WorkshopPageState extends State<WorkshopPage> {
+class _EventsPageState extends State<EventsPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
 
-  final List<_WorkshopItem> _workshops = const [
-    _WorkshopItem(
-      name: 'Creative Branding Sprint',
+  final List<_EventItem> _events = const [
+    _EventItem(
+      name: 'Flame Creator Summit 2025',
       description:
-          'Learn how to build a magnetic brand system in one practical session.',
-      creator: 'Sarah K.',
-      dateTime: 'May 10 • 5:30 PM',
-      availableSeats: 18,
-      tokenSeats: 4,
-      isFree: false,
-      price: 49.0,
-      category: 'Design',
-      location: 'Online (Zoom)',
+          'An exclusive gathering of top educators, creators, and learners to shape the future of short-form learning.',
+      organizer: 'Flame Team',
+      dateTime: 'Jun 5 • 10:00 AM',
+      location: 'Cairo Tech Hub, Nasr City',
+      category: 'Summit',
       imageUrl:
-          'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200',
+          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
+      attendees: 320,
+      isFree: false,
+      price: 120.0,
+      isOnline: false,
     ),
-    _WorkshopItem(
-      name: 'AI Tools for Product Teams',
+    _EventItem(
+      name: 'AI in Education Webinar',
       description:
-          'A practical workflow to automate discovery, writing, and handoff using AI.',
-      creator: 'Ibrahim N.',
-      dateTime: 'May 14 • 7:00 PM',
-      availableSeats: 35,
-      tokenSeats: 10,
+          'Learn how artificial intelligence is transforming how we teach and learn across all disciplines.',
+      organizer: 'Ibrahim N.',
+      dateTime: 'Jun 12 • 6:00 PM',
+      location: 'Online (Zoom)',
+      category: 'AI',
+      imageUrl:
+          'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?w=1200',
+      attendees: 540,
       isFree: true,
       price: 0,
-      category: 'AI',
-      location: 'Flame Studio, Cairo',
-      imageUrl:
-          'https://images.unsplash.com/photo-1677442135136-760c813028c0?w=1200',
+      isOnline: true,
     ),
-    _WorkshopItem(
-      name: 'Monetization for Creators',
+    _EventItem(
+      name: 'Design Thinking Bootcamp',
       description:
-          'Build sustainable revenue streams with memberships, products, and events.',
-      creator: 'Mona H.',
-      dateTime: 'May 19 • 6:00 PM',
-      availableSeats: 12,
-      tokenSeats: 3,
-      isFree: false,
-      price: 79.0,
-      category: 'Business',
-      location: 'Online (Google Meet)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'Mobile UI Motion Lab',
-      description:
-          'Design polished interactions with modern motion principles and prototyping patterns.',
-      creator: 'Kareem T.',
-      dateTime: 'May 22 • 8:00 PM',
-      availableSeats: 22,
-      tokenSeats: 8,
-      isFree: false,
-      price: 59.0,
+          'A full-day hands-on bootcamp exploring design thinking methods used by global product teams.',
+      organizer: 'Sarah K.',
+      dateTime: 'Jun 18 • 9:00 AM',
+      location: 'AUC New Cairo',
       category: 'Design',
-      location: 'Online (Discord Stage)',
       imageUrl:
-          'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?w=1200',
+          'https://images.unsplash.com/photo-1558655146-d09347e92766?w=1200',
+      attendees: 90,
+      isFree: false,
+      price: 85.0,
+      isOnline: false,
+    ),
+    _EventItem(
+      name: 'Open Mic: Knowledge Night',
+      description:
+          'A casual evening where creators share short talks on what they\'ve been learning this month.',
+      organizer: 'Mona H.',
+      dateTime: 'Jun 22 • 7:30 PM',
+      location: 'The Greek Campus, Dokki',
+      category: 'Community',
+      imageUrl:
+          'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200',
+      attendees: 150,
+      isFree: true,
+      price: 0,
+      isOnline: false,
     ),
   ];
 
   List<String> get _categories => <String>{
     'All',
-    ..._workshops.map((w) => w.category),
+    ..._events.map((e) => e.category),
   }.toList();
 
-  List<_WorkshopItem> get _filteredWorkshops {
+  List<_EventItem> get _filteredEvents {
     final search = _searchController.text.trim().toLowerCase();
-    return _workshops.where((workshop) {
+    return _events.where((event) {
       final categoryMatch =
-          _selectedCategory == 'All' || workshop.category == _selectedCategory;
+          _selectedCategory == 'All' || event.category == _selectedCategory;
       final searchMatch =
           search.isEmpty ||
-          workshop.name.toLowerCase().contains(search) ||
-          workshop.creator.toLowerCase().contains(search) ||
-          workshop.description.toLowerCase().contains(search);
+          event.name.toLowerCase().contains(search) ||
+          event.organizer.toLowerCase().contains(search) ||
+          event.description.toLowerCase().contains(search);
       return categoryMatch && searchMatch;
     }).toList();
   }
 
-  Future<void> _openCreateWorkshopPanel() async {
+  Future<void> _openCreateEventDialog() async {
     await showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Create workshop',
+      barrierLabel: 'Create event',
       barrierColor: Colors.black.withValues(alpha: 0.75),
       transitionDuration: const Duration(milliseconds: 260),
       pageBuilder: (context, _, _) => const SizedBox.shrink(),
@@ -109,7 +109,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
           opacity: curved,
           child: ScaleTransition(
             scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
-            child: const _CreateWorkshopDialog(),
+            child: const _CreateEventDialog(),
           ),
         );
       },
@@ -127,7 +127,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
     final size = MediaQuery.sizeOf(context);
     final isMobile = size.width < 700;
     final crossAxisCount = isMobile ? 1 : (size.width < 1120 ? 2 : 3);
-    final workshops = _filteredWorkshops;
+    final events = _filteredEvents;
 
     return Scaffold(
       backgroundColor: const Color(0xFF07090F),
@@ -167,7 +167,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                         ),
                         const SizedBox(height: 22),
                         Text(
-                          'Workshop Marketplace',
+                          'Events',
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
                                 color: Colors.white,
@@ -176,7 +176,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Discover, create, and book premium learning experiences.',
+                          'Discover live events, summits, and community meetups.',
                           style: TextStyle(color: Color(0xFFC7CCDA), height: 1.3),
                         ),
                         const SizedBox(height: 18),
@@ -197,9 +197,8 @@ class _WorkshopPageState extends State<WorkshopPage> {
                               return _CategoryChip(
                                 label: category,
                                 selected: selected,
-                                onTap: () => setState(
-                                  () => _selectedCategory = category,
-                                ),
+                                onTap: () =>
+                                    setState(() => _selectedCategory = category),
                               );
                             },
                           ),
@@ -208,7 +207,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                         Row(
                           children: [
                             Text(
-                              '${workshops.length} Workshops',
+                              '${events.length} Events',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -216,7 +215,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                             ),
                             const Spacer(),
                             ElevatedButton.icon(
-                              onPressed: _openCreateWorkshopPanel,
+                              onPressed: _openCreateEventDialog,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFF7A18),
                                 foregroundColor: Colors.white,
@@ -239,19 +238,19 @@ class _WorkshopPageState extends State<WorkshopPage> {
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 110),
-                  sliver: workshops.isEmpty
+                  sliver: events.isEmpty
                       ? const SliverToBoxAdapter(child: _EmptyState())
                       : SliverGrid(
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxisCount,
                             mainAxisSpacing: 16,
                             crossAxisSpacing: 16,
-                            childAspectRatio: isMobile ? 0.86 : 0.92,
+                            childAspectRatio: isMobile ? 0.82 : 0.88,
                           ),
                           delegate: SliverChildBuilderDelegate(
-                            childCount: workshops.length,
-                            (context, index) => _WorkshopCard(
-                              workshop: workshops[index],
+                            childCount: events.length,
+                            (context, index) => _EventCard(
+                              event: events[index],
                               animationDelay: index * 70,
                             ),
                           ),
@@ -265,6 +264,8 @@ class _WorkshopPageState extends State<WorkshopPage> {
     );
   }
 }
+
+// ─── Background ───────────────────────────────────────────────────────────────
 
 class _BackgroundGradient extends StatelessWidget {
   const _BackgroundGradient();
@@ -283,6 +284,8 @@ class _BackgroundGradient extends StatelessWidget {
   }
 }
 
+// ─── Header ───────────────────────────────────────────────────────────────────
+
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
 
@@ -295,12 +298,14 @@ class _BrandMark extends StatelessWidget {
           height: 32,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [Color(0xFFFF7A18), Color(0xFFB83280)]),
+            gradient: LinearGradient(
+              colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
+            ),
           ),
         ),
         const SizedBox(width: 10),
         const Text(
-          'Flame Workshops',
+          'Flame Events',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -311,6 +316,38 @@ class _BrandMark extends StatelessWidget {
     );
   }
 }
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(14),
+            child: Ink(
+              width: 42,
+              height: 42,
+              child: Icon(icon, color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Search & Filter ──────────────────────────────────────────────────────────
 
 class _SearchInput extends StatelessWidget {
   const _SearchInput({required this.controller, required this.onChanged});
@@ -325,7 +362,7 @@ class _SearchInput extends StatelessWidget {
       onChanged: onChanged,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        hintText: 'Search workshops, creators, or topics',
+        hintText: 'Search events, organizers, or topics',
         hintStyle: const TextStyle(color: Color(0xFFB2B8CB)),
         prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFB2B8CB)),
         filled: true,
@@ -389,22 +426,24 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _WorkshopCard extends StatefulWidget {
-  const _WorkshopCard({required this.workshop, required this.animationDelay});
+// ─── Event Card ───────────────────────────────────────────────────────────────
 
-  final _WorkshopItem workshop;
+class _EventCard extends StatefulWidget {
+  const _EventCard({required this.event, required this.animationDelay});
+
+  final _EventItem event;
   final int animationDelay;
 
   @override
-  State<_WorkshopCard> createState() => _WorkshopCardState();
+  State<_EventCard> createState() => _EventCardState();
 }
 
-class _WorkshopCardState extends State<_WorkshopCard> {
+class _EventCardState extends State<_EventCard> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.workshop;
+    final item = widget.event;
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 380 + widget.animationDelay),
       tween: Tween<double>(begin: 0, end: 1),
@@ -465,6 +504,16 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                             child: _PillTag(label: item.category),
                           ),
                           Positioned(
+                            top: 12,
+                            left: 12,
+                            child: _PillTag(
+                              label: item.isOnline ? 'Online' : 'In-Person',
+                              color: item.isOnline
+                                  ? const Color(0xFFFF7A18)
+                                  : const Color(0xFF10B981),
+                            ),
+                          ),
+                          Positioned(
                             left: 12,
                             bottom: 12,
                             child: _PillTag(
@@ -503,14 +552,22 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          _CardDetail(icon: Icons.person_outline, text: item.creator),
-                          _CardDetail(icon: Icons.schedule_rounded, text: item.dateTime),
                           _CardDetail(
-                            icon: Icons.event_seat_outlined,
-                            text: '${item.availableSeats} seats • ${item.tokenSeats} token seats',
+                            icon: Icons.person_outline,
+                            text: item.organizer,
                           ),
                           _CardDetail(
-                            icon: Icons.language_rounded,
+                            icon: Icons.schedule_rounded,
+                            text: item.dateTime,
+                          ),
+                          _CardDetail(
+                            icon: Icons.people_outline_rounded,
+                            text: '${item.attendees} attending',
+                          ),
+                          _CardDetail(
+                            icon: item.isOnline
+                                ? Icons.language_rounded
+                                : Icons.location_on_outlined,
                             text: item.location,
                           ),
                           const SizedBox(height: 10),
@@ -518,7 +575,7 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
-                                // TODO(firebase): Connect booking flow to Firestore and payments.
+                                // TODO(firebase): Connect RSVP/booking flow to Firestore and payments.
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFF7A18),
@@ -528,7 +585,7 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                                 ),
                               ),
                               child: const Text(
-                                'Book',
+                                'RSVP',
                                 style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
@@ -576,19 +633,19 @@ class _CardDetail extends StatelessWidget {
 }
 
 class _PillTag extends StatelessWidget {
-  const _PillTag({required this.label, this.solid = false});
+  const _PillTag({required this.label, this.solid = false, this.color});
 
   final String label;
   final bool solid;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final bg = color ?? (solid ? const Color(0xFFFF7A18) : Colors.black.withValues(alpha: 0.45));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: solid
-            ? const Color(0xFFFF7A18)
-            : Colors.black.withValues(alpha: 0.45),
+        color: bg,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
       ),
@@ -604,22 +661,54 @@ class _PillTag extends StatelessWidget {
   }
 }
 
-class _CreateWorkshopDialog extends StatefulWidget {
-  const _CreateWorkshopDialog();
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
-  State<_CreateWorkshopDialog> createState() => _CreateWorkshopDialogState();
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.05),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.event_busy_rounded, color: Colors.white70),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'No events found for this search. Try another category or query.',
+              style: TextStyle(color: Color(0xFFC7CCDA)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
+// ─── Create Event Dialog ──────────────────────────────────────────────────────
+
+class _CreateEventDialog extends StatefulWidget {
+  const _CreateEventDialog();
+
+  @override
+  State<_CreateEventDialog> createState() => _CreateEventDialogState();
+}
+
+class _CreateEventDialogState extends State<_CreateEventDialog> {
   bool _isPaid = false;
-  String _paymentMethod = 'Credit card';
+  bool _isOnline = true;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.sizeOf(context);
     final width = media.width * 0.8;
-    final height = media.height * 0.8;
+    final height = media.height * 0.82;
 
     return Center(
       child: Dialog(
@@ -656,7 +745,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Create Workshop',
+                                'Create Event',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
@@ -665,7 +754,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Build your workshop details and publish later with Firebase.',
+                                'Schedule a live or in-person learning event.',
                                 style: TextStyle(color: Color(0xFFB7BECE)),
                               ),
                             ],
@@ -688,14 +777,14 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         runSpacing: 14,
                         children: [
                           const _FormFieldBlock(
-                            label: 'Workshop name',
-                            child: _StyledTextField(hint: 'Enter workshop name'),
+                            label: 'Event name',
+                            child: _StyledTextField(hint: 'Enter event name'),
                           ),
                           const _FormFieldBlock(
-                            label: 'Workshop description',
+                            label: 'Description',
                             wide: true,
                             child: _StyledTextField(
-                              hint: 'Describe what participants will learn',
+                              hint: 'What will attendees experience?',
                               maxLines: 4,
                             ),
                           ),
@@ -705,16 +794,53 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             child: _UploadPlaceholder(),
                           ),
                           const _FormFieldBlock(
-                            label: 'Number of seats',
+                            label: 'Date',
+                            child: _StyledTextField(hint: 'e.g. June 5, 2025'),
+                          ),
+                          const _FormFieldBlock(
+                            label: 'Time',
+                            child: _StyledTextField(hint: 'e.g. 6:00 PM'),
+                          ),
+                          _FormFieldBlock(
+                            label: 'Event format',
+                            wide: true,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: SwitchListTile(
+                                    value: _isOnline,
+                                    onChanged: (v) =>
+                                        setState(() => _isOnline = v),
+                                    title: Text(
+                                      _isOnline ? 'Online event' : 'In-person event',
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                    contentPadding: EdgeInsets.zero,
+                                    activeThumbColor: const Color(0xFFFF7A18),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _FormFieldBlock(
+                            label: _isOnline ? 'Meeting link' : 'Venue address',
+                            wide: true,
                             child: _StyledTextField(
-                              hint: 'e.g. 30',
-                              keyboardType: TextInputType.number,
+                              hint: _isOnline
+                                  ? 'Zoom / Google Meet link'
+                                  : 'Full venue address',
                             ),
                           ),
                           const _FormFieldBlock(
-                            label: 'Token seats',
+                            label: 'Category',
                             child: _StyledTextField(
-                              hint: 'e.g. 5',
+                              hint: 'Summit / AI / Design / Community',
+                            ),
+                          ),
+                          const _FormFieldBlock(
+                            label: 'Expected attendees',
+                            child: _StyledTextField(
+                              hint: 'e.g. 200',
                               keyboardType: TextInputType.number,
                             ),
                           ),
@@ -726,10 +852,10 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                                 Expanded(
                                   child: SwitchListTile(
                                     value: _isPaid,
-                                    onChanged: (value) =>
-                                        setState(() => _isPaid = value),
+                                    onChanged: (v) =>
+                                        setState(() => _isPaid = v),
                                     title: Text(
-                                      _isPaid ? 'Paid workshop' : 'Free workshop',
+                                      _isPaid ? 'Paid event' : 'Free event',
                                       style: const TextStyle(color: Colors.white),
                                     ),
                                     contentPadding: EdgeInsets.zero,
@@ -740,48 +866,18 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             ),
                           ),
                           if (_isPaid)
-                            _FormFieldBlock(
-                              label: 'Payment method',
-                              child: _StyledDropdown(
-                                value: _paymentMethod,
-                                onChanged: (value) => setState(
-                                  () => _paymentMethod = value!,
-                                ),
-                                items: const [
-                                  'Credit card',
-                                  'Wallet',
-                                  'Bank transfer',
-                                ],
-                              ),
-                            ),
-                          if (_isPaid)
                             const _FormFieldBlock(
-                              label: 'Price',
+                              label: 'Ticket price',
                               child: _StyledTextField(
-                                hint: 'e.g. 49',
+                                hint: 'e.g. 120',
                                 keyboardType: TextInputType.number,
                               ),
                             ),
                           const _FormFieldBlock(
-                            label: 'Date and time',
-                            child: _StyledTextField(hint: 'May 10, 5:30 PM'),
-                          ),
-                          const _FormFieldBlock(
-                            label: 'Category',
-                            child: _StyledTextField(hint: 'Design / AI / Business'),
-                          ),
-                          const _FormFieldBlock(
-                            label: 'Location or online link',
+                            label: 'Additional notes (optional)',
                             wide: true,
                             child: _StyledTextField(
-                              hint: 'Venue address or meeting link',
-                            ),
-                          ),
-                          const _FormFieldBlock(
-                            label: 'Requirements / notes (optional)',
-                            wide: true,
-                            child: _StyledTextField(
-                              hint: 'Any prerequisites or attendee notes',
+                              hint: 'Schedule, dress code, requirements…',
                               maxLines: 3,
                             ),
                           ),
@@ -811,7 +907,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         const SizedBox(width: 10),
                         ElevatedButton(
                           onPressed: () {
-                            // TODO(firebase): Create workshop document and upload cover image.
+                            // TODO(firebase): Create event document and upload cover image.
                             Navigator.of(context).pop();
                           },
                           style: ElevatedButton.styleFrom(
@@ -825,7 +921,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text('Create Workshop'),
+                          child: const Text('Create Event'),
                         ),
                       ],
                     ),
@@ -839,6 +935,8 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
     );
   }
 }
+
+// ─── Form helpers (reused from workshop pattern) ──────────────────────────────
 
 class _FormFieldBlock extends StatelessWidget {
   const _FormFieldBlock({
@@ -854,7 +952,8 @@ class _FormFieldBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final blockWidth = wide ? width : (width > 900 ? (width * 0.8 - 74) / 2 : width);
+    final blockWidth =
+        wide ? width : (width > 900 ? (width * 0.8 - 74) / 2 : width);
     return SizedBox(
       width: blockWidth,
       child: Column(
@@ -914,49 +1013,6 @@ class _StyledTextField extends StatelessWidget {
   }
 }
 
-class _StyledDropdown extends StatelessWidget {
-  const _StyledDropdown({
-    required this.value,
-    required this.onChanged,
-    required this.items,
-  });
-
-  final String value;
-  final ValueChanged<String?> onChanged;
-  final List<String> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      dropdownColor: const Color(0xFF101521),
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-      ),
-      iconEnabledColor: Colors.white,
-      onChanged: onChanged,
-      items: items
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
 class _UploadPlaceholder extends StatelessWidget {
   const _UploadPlaceholder();
 
@@ -986,88 +1042,32 @@ class _UploadPlaceholder extends StatelessWidget {
   }
 }
 
-class _GlassIconButton extends StatelessWidget {
-  const _GlassIconButton({required this.icon, required this.onPressed});
+// ─── Data Model ───────────────────────────────────────────────────────────────
 
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(14),
-            child: Ink(
-              width: 42,
-              height: 42,
-              child: Icon(icon, color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.auto_awesome_rounded, color: Colors.white70),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'No workshops found for this search. Try another category or query.',
-              style: TextStyle(color: Color(0xFFC7CCDA)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkshopItem {
-  const _WorkshopItem({
+class _EventItem {
+  const _EventItem({
     required this.name,
     required this.description,
-    required this.creator,
+    required this.organizer,
     required this.dateTime,
-    required this.availableSeats,
-    required this.tokenSeats,
+    required this.location,
+    required this.category,
+    required this.imageUrl,
+    required this.attendees,
     required this.isFree,
     required this.price,
-    required this.category,
-    required this.location,
-    required this.imageUrl,
+    required this.isOnline,
   });
 
   final String name;
   final String description;
-  final String creator;
+  final String organizer;
   final String dateTime;
-  final int availableSeats;
-  final int tokenSeats;
+  final String location;
+  final String category;
+  final String imageUrl;
+  final int attendees;
   final bool isFree;
   final double price;
-  final String category;
-  final String location;
-  final String imageUrl;
+  final bool isOnline;
 }

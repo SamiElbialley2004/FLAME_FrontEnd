@@ -1,21 +1,5 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-
-// ─── Color Palette ────────────────────────────────────────────────────────────
-class _AppColors {
-  static const background = Color(0xFF1D1A1A);
-  static const surface = Color(0xFF353030);
-  static const surfaceElevated = Color(0xFF3E3939);
-  static const primaryOrange = Color(0xFFD7640C);
-  static const lightPeach = Color(0xFFFBBE89);
-  static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFFAAAAAA);
-  static const textMuted = Color(0xFF777777);
-  static const divider = Color(0xFF444040);
-  static const badgeWarning = Color(0xFF5A3A00);
-  static const badgeWarningText = Color(0xFFFBBE89);
-  static const badgeSuccess = Color(0xFF0A3A1A);
-  static const badgeSuccessText = Color(0xFF4ADE80);
-}
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({super.key});
@@ -71,7 +55,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       requiresApproval: false,
       categories: ['Business', 'Technology'],
       description:
-      'The International Association for Management of Technology. It is an international non-profit organization.',
+          'The International Association for Management of Technology. An international non-profit organization.',
       gradientColors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
     ),
     _Community(
@@ -110,11 +94,17 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     return _communities
         .where(
           (c) =>
-      c.name.toLowerCase().contains(q) ||
-          c.location.toLowerCase().contains(q) ||
-          c.categories.any((cat) => cat.toLowerCase().contains(q)),
-    )
+              c.name.toLowerCase().contains(q) ||
+              c.location.toLowerCase().contains(q) ||
+              c.categories.any((cat) => cat.toLowerCase().contains(q)),
+        )
         .toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _handleJoin(_Community community) {
@@ -136,126 +126,158 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _AppColors.surface,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: _AppColors.divider,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF09090B).withValues(alpha: 0.92),
+                border: const Border(
+                  top: BorderSide(color: Color(0x1FFFFFFF)),
                 ),
               ),
-              const Text(
-                'Request to Join',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: _AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Send a request to join. The host will review and approve it.',
-                style: TextStyle(fontSize: 14, color: _AppColors.textSecondary),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Notes',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: notesController,
-                maxLines: 4,
-                style: const TextStyle(fontSize: 14, color: _AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Any additional info about your request...',
-                  hintStyle: const TextStyle(color: _AppColors.textMuted),
-                  filled: true,
-                  fillColor: _AppColors.surfaceElevated,
-                  contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: _AppColors.primaryOrange,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_AppColors.primaryOrange, _AppColors.lightPeach],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      setState(() {
-                        _requestedIds.add(community.id);
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Request sent to ${community.name}!'),
-                          backgroundColor: _AppColors.primaryOrange,
-                          behavior: SnackBarBehavior.floating,
+                  ),
+                  const Text(
+                    'Request to Join',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Send a request to join. The host will review and approve it.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Notes',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: notesController,
+                    maxLines: 4,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Any additional info about your request...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.07),
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFFF7A18),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF7A18), Color(0xFFFFB073)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF7A18).withValues(alpha: 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Submit Request',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          setState(() {
+                            _requestedIds.add(community.id);
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Request sent to ${community.name}!'),
+                              backgroundColor: const Color(0xFFFF7A18),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Submit Request',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -267,171 +289,195 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     final filtered = _filtered;
 
     return Scaffold(
-      backgroundColor: _AppColors.background,
-      body: Column(
+      backgroundColor: const Color(0xFF09090B),
+      body: Stack(
         children: [
-          // ── Header ──────────────────────────────────────────────────────────
           Container(
-            color: _AppColors.surface,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 16,
-              right: 16,
-              bottom: 12,
-            ),
-            child: Row(
-              children: [
-                // Brand
-                const Text(
-                  'Flame',
-                  style: TextStyle(
-                    color: _AppColors.primaryOrange,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const Spacer(),
-                // For You / Following pills
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: _AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    children: const [
-                      _PillTab(label: 'For You', active: true),
-                      _PillTab(label: 'Following', active: false),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                // Bell
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_outlined, size: 24),
-                      color: _AppColors.textPrimary,
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                          color: _AppColors.primaryOrange,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '1',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.chat_bubble_outline, size: 22),
-                  color: _AppColors.textPrimary,
-                ),
-              ],
-            ),
-          ),
-
-          // ── Search ───────────────────────────────────────────────────────────
-          Container(
-            color: _AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              style: const TextStyle(fontSize: 14, color: _AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Search communities...',
-                hintStyle: const TextStyle(color: _AppColors.textMuted, fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: _AppColors.textMuted, size: 20),
-                filled: true,
-                fillColor: _AppColors.surfaceElevated,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: _AppColors.divider, width: 1),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: _AppColors.primaryOrange, width: 1.5),
-                ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF0F0A00), Color(0xFF09090B)],
               ),
             ),
           ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // ── Header ──────────────────────────────────────────────────
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (r) => const LinearGradient(
+                              colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
+                            ).createShader(r),
+                            child: const Text(
+                              'Flame',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                _PillTab(label: 'For You', active: true),
+                                _PillTab(label: 'Following', active: false),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                onPressed: () {},
+                                icon: const Icon(
+                                  Icons.notifications_outlined,
+                                  size: 24,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFF7A18),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      '1',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            onPressed: () {},
+                            icon: const Icon(
+                              Icons.chat_bubble_outline,
+                              size: 22,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
-          // Thin divider between header and list
-          Container(height: 1, color: _AppColors.divider),
+                // ── Search ───────────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search communities...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.white.withValues(alpha: 0.4),
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.06),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFFF7A18),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
-          // ── List ─────────────────────────────────────────────────────────────
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) {
-                final c = filtered[i];
-                return _CommunityCard(
-                  community: c,
-                  isJoined: _joinedIds.contains(c.id),
-                  isRequested: _requestedIds.contains(c.id),
-                  isBookmarked: _bookmarkedIds.contains(c.id),
-                  onJoin: () => _handleJoin(c),
-                  onBookmark: () {
-                    setState(() {
-                      if (_bookmarkedIds.contains(c.id)) {
-                        _bookmarkedIds.remove(c.id);
-                      } else {
-                        _bookmarkedIds.add(c.id);
-                      }
-                    });
-                  },
-                  onShare: () {},
-                );
-              },
+                // ── List ─────────────────────────────────────────────────────
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final c = filtered[i];
+                      return _CommunityCard(
+                        community: c,
+                        isJoined: _joinedIds.contains(c.id),
+                        isRequested: _requestedIds.contains(c.id),
+                        isBookmarked: _bookmarkedIds.contains(c.id),
+                        onJoin: () => _handleJoin(c),
+                        onBookmark: () {
+                          setState(() {
+                            if (_bookmarkedIds.contains(c.id)) {
+                              _bookmarkedIds.remove(c.id);
+                            } else {
+                              _bookmarkedIds.add(c.id);
+                            }
+                          });
+                        },
+                        onShare: () {},
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
 
-      // ── FAB ──────────────────────────────────────────────────────────────────
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [_AppColors.primaryOrange, _AppColors.lightPeach],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x66D7640C),
-              blurRadius: 14,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-      ),
     );
   }
 }
@@ -459,300 +505,334 @@ class _CommunityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _AppColors.divider, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+              width: 1,
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top row: logo + name ─────────────────────────────────────────
-            Row(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: community.gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _AppColors.divider),
-                  ),
-                  child: Center(
-                    child: Text(
-                      community.logoText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        community.name,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: _AppColors.textPrimary,
+                // ── Top row: logo + name ───────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: community.gradientColors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
                         ),
                       ),
-                      if (community.categories.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          children: community.categories
-                              .map(
-                                (cat) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2A1F00),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: _AppColors.primaryOrange.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Text(
-                                cat,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _AppColors.lightPeach,
-                                ),
-                              ),
+                      child: Center(
+                        child: Text(
+                          community.logoText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            community.name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
-                          )
-                              .toList(),
+                          ),
+                          if (community.categories.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              children: community.categories
+                                  .map(
+                                    (cat) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFFFF7A18,
+                                        ).withValues(alpha: 0.12),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        border: Border.all(
+                                          color: const Color(
+                                            0xFFFF7A18,
+                                          ).withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        cat,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFFFFB073),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Description ──────────────────────────────────────────
+                if (community.description.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    community.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.6),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+                const SizedBox(height: 12),
+
+                // ── Location ─────────────────────────────────────────────
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: Color(0xFFFF7A18),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      community.location,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // ── Host ─────────────────────────────────────────────────
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: const Color(
+                        0xFFFF7A18,
+                      ).withValues(alpha: 0.18),
+                      child: Text(
+                        community.hostName[0],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFF7A18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      community.hostName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // ── Mutual + members ──────────────────────────────────────
+                Row(
+                  children: [
+                    Text(
+                      community.mutualMembers == 0
+                          ? 'No mutual members'
+                          : '${community.mutualMembers} mutual members',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.people_outline,
+                      size: 14,
+                      color: Color(0xFFFF7A18),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${community.totalMembers}/${community.maxMembers}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Approval badge ────────────────────────────────────────
+                if (community.requiresApproval && !isRequested) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF7A18).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFFF7A18).withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.shield_outlined,
+                          size: 16,
+                          color: Color(0xFFFFB073),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Approval required to join',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFFFB073),
+                          ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // ── Description ──────────────────────────────────────────────────
-            if (community.description.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                community.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: _AppColors.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 12),
-
-            // ── Divider ──────────────────────────────────────────────────────
-            Container(height: 1, color: _AppColors.divider),
-            const SizedBox(height: 12),
-
-            // ── Location ─────────────────────────────────────────────────────
-            Row(
-              children: const [
-                Icon(Icons.location_on_outlined, size: 15, color: _AppColors.primaryOrange),
-                SizedBox(width: 4),
-                Text(
-                  '',
-                  style: TextStyle(fontSize: 13, color: _AppColors.textSecondary),
-                ),
-              ],
-            ),
-
-            // We rebuild location text with community data:
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 15, color: _AppColors.primaryOrange),
-                const SizedBox(width: 4),
-                Text(
-                  community.location,
-                  style: const TextStyle(fontSize: 13, color: _AppColors.textSecondary),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // ── Host ─────────────────────────────────────────────────────────
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: _AppColors.primaryOrange.withValues(alpha: 0.2),
-                  child: Text(
-                    community.hostName[0],
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _AppColors.primaryOrange,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  community.hostName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: _AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
+                ],
 
-            const SizedBox(height: 10),
-
-            // ── Mutual + members ─────────────────────────────────────────────
-            Row(
-              children: [
-                Text(
-                  community.mutualMembers == 0
-                      ? 'No mutual members'
-                      : '${community.mutualMembers} mutual members',
-                  style: const TextStyle(fontSize: 12, color: _AppColors.textMuted),
-                ),
-                const Spacer(),
-                const Icon(Icons.people_outline, size: 14, color: _AppColors.primaryOrange),
-                const SizedBox(width: 4),
-                Text(
-                  '${community.totalMembers}/${community.maxMembers}',
-                  style: const TextStyle(fontSize: 12, color: _AppColors.textSecondary),
-                ),
-              ],
-            ),
-
-            // ── Approval badge ───────────────────────────────────────────────
-            if (community.requiresApproval && !isRequested) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                decoration: BoxDecoration(
-                  color: _AppColors.badgeWarning,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _AppColors.primaryOrange.withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.shield_outlined, size: 16, color: _AppColors.lightPeach),
-                    SizedBox(width: 8),
-                    Text(
-                      'Approval required to join',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: _AppColors.badgeWarningText,
+                if (isRequested) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.4),
                       ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Color(0xFF34D399),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Request sent — pending approval',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF34D399),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                // ── Action row ────────────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(child: _buildJoinButton()),
+                    const SizedBox(width: 10),
+                    _SmallActionButton(
+                      icon: isBookmarked
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      color: isBookmarked
+                          ? const Color(0xFFFF7A18)
+                          : Colors.white.withValues(alpha: 0.4),
+                      onTap: onBookmark,
+                    ),
+                    const SizedBox(width: 8),
+                    _SmallActionButton(
+                      icon: Icons.ios_share_outlined,
+                      color: Colors.white.withValues(alpha: 0.4),
+                      onTap: onShare,
                     ),
                   ],
                 ),
-              ),
-            ],
-
-            if (isRequested) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                decoration: BoxDecoration(
-                  color: _AppColors.badgeSuccess,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF166534)),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.check_circle_outline, size: 16, color: _AppColors.badgeSuccessText),
-                    SizedBox(width: 8),
-                    Text(
-                      'Request sent — pending approval',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: _AppColors.badgeSuccessText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 12),
-
-            // ── Action row ───────────────────────────────────────────────────
-            Row(
-              children: [
-                Expanded(child: _buildJoinButton()),
-                const SizedBox(width: 10),
-                _SmallActionButton(
-                  icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  color: isBookmarked ? _AppColors.primaryOrange : _AppColors.textMuted,
-                  onTap: onBookmark,
-                ),
-                const SizedBox(width: 8),
-                _SmallActionButton(
-                  icon: Icons.ios_share_outlined,
-                  color: _AppColors.textMuted,
-                  onTap: onShare,
-                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildJoinButton() {
-    // Already joined
     if (isJoined) {
       return GestureDetector(
         onTap: onJoin,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(
-            color: _AppColors.surfaceElevated,
+            color: Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _AppColors.divider),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-          child: Row(
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.check, color: _AppColors.lightPeach, size: 18),
+            children: [
+              Icon(Icons.check, color: Color(0xFFFFB073), size: 18),
               SizedBox(width: 6),
               Text(
                 'Joined',
                 style: TextStyle(
-                  color: _AppColors.lightPeach,
+                  color: Color(0xFFFFB073),
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
                 ),
@@ -763,24 +843,27 @@ class _CommunityCard extends StatelessWidget {
       );
     }
 
-    // Request already sent
     if (isRequested) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
-          color: _AppColors.surfaceElevated,
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _AppColors.divider),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.hourglass_top, color: _AppColors.textMuted, size: 18),
-            SizedBox(width: 6),
+          children: [
+            Icon(
+              Icons.hourglass_top,
+              color: Colors.white.withValues(alpha: 0.4),
+              size: 18,
+            ),
+            const SizedBox(width: 6),
             Text(
               'Requested',
               style: TextStyle(
-                color: _AppColors.textMuted,
+                color: Colors.white.withValues(alpha: 0.4),
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
@@ -790,21 +873,20 @@ class _CommunityCard extends StatelessWidget {
       );
     }
 
-    // Join / Request to join (gradient button)
     return GestureDetector(
       onTap: onJoin,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [_AppColors.primaryOrange, _AppColors.lightPeach],
+            colors: [Color(0xFFFF7A18), Color(0xFFFFB073)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: _AppColors.primaryOrange.withValues(alpha: 0.35),
+              color: const Color(0xFFFF7A18).withValues(alpha: 0.35),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -857,9 +939,9 @@ class _SmallActionButton extends StatelessWidget {
         width: 46,
         height: 46,
         decoration: BoxDecoration(
-          color: _AppColors.surfaceElevated,
+          color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _AppColors.divider),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
         child: Icon(icon, color: color, size: 20),
       ),
@@ -883,8 +965,8 @@ class _PillTab extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: active
             ? const LinearGradient(
-          colors: [_AppColors.primaryOrange, _AppColors.lightPeach],
-        )
+                colors: [Color(0xFFFF7A18), Color(0xFFFFB073)],
+              )
             : null,
         color: active ? null : Colors.transparent,
         borderRadius: BorderRadius.circular(999),
@@ -894,7 +976,7 @@ class _PillTab extends StatelessWidget {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: active ? Colors.white : _AppColors.textMuted,
+          color: active ? Colors.white : Colors.white.withValues(alpha: 0.4),
         ),
       ),
     );
