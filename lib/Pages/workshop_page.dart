@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flame/components/button.dart';
 import 'package:flame/components/text_field.dart';
 import 'profile_screen.dart';
+import 'events_page.dart';
 
 class WorkshopPage extends StatefulWidget {
   const WorkshopPage({super.key});
@@ -271,6 +272,14 @@ class _WorkshopPageState extends State<WorkshopPage> {
         onTap: (index) {
           if (index == 0) {
             Navigator.of(context).maybePop();
+            return;
+          }
+
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EventsPage()),
+            );
             return;
           }
 
