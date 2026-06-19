@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'communities_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -114,6 +115,13 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedNavIndex,
         onTap: (index) async {
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CommunitiesScreen()),
+            );
+            return;
+          }
           if (index == 4) {
             Navigator.push(
               context,
