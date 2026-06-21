@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../home/video_player_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -232,7 +233,9 @@ class _VideoTab extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned.fill(child: Material(color: Colors.transparent, child: InkWell(onTap: () {}))),
+              Positioned.fill(child: Material(color: Colors.transparent, child: InkWell(onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => VideoPlayerScreen(title: v.title, creator: v.creator, category: v.category, gradient: v.gradient)));
+              }))),
             ],
           ),
         );

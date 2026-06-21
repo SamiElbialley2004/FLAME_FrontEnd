@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 class WorkshopPage extends StatefulWidget {
   const WorkshopPage({super.key});
@@ -928,7 +928,7 @@ class _StyledDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      value: value,
       dropdownColor: const Color(0xFF101521),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(

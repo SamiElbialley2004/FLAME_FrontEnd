@@ -1,5 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../notifications_screen.dart';
+import '../messaging_screen.dart';
+import '../../home/home_page.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({super.key});
@@ -321,17 +324,20 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                       ),
                       child: Row(
                         children: [
-                          ShaderMask(
-                            shaderCallback: (r) => const LinearGradient(
-                              colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
-                            ).createShader(r),
-                            child: const Text(
-                              'Flame',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
+                          GestureDetector(
+                            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage())),
+                            child: ShaderMask(
+                              shaderCallback: (r) => const LinearGradient(
+                                colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
+                              ).createShader(r),
+                              child: const Text(
+                                'Flame',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -357,7 +363,9 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               IconButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                                },
                                 icon: const Icon(
                                   Icons.notifications_outlined,
                                   size: 24,
@@ -389,7 +397,9 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             ],
                           ),
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagingScreen()));
+                            },
                             icon: const Icon(
                               Icons.chat_bubble_outline,
                               size: 22,
@@ -477,12 +487,9 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
           ),
         ],
       ),
-
     );
   }
 }
-
-// ─── Community Card ───────────────────────────────────────────────────────────
 
 class _CommunityCard extends StatelessWidget {
   const _CommunityCard({
@@ -523,7 +530,6 @@ class _CommunityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Top row: logo + name ───────────────────────────────────
                 Row(
                   children: [
                     Container(
@@ -606,8 +612,6 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // ── Description ──────────────────────────────────────────
                 if (community.description.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -621,13 +625,9 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 12),
-
                 Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
                 const SizedBox(height: 12),
-
-                // ── Location ─────────────────────────────────────────────
                 Row(
                   children: [
                     const Icon(
@@ -645,10 +645,7 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // ── Host ─────────────────────────────────────────────────
                 Row(
                   children: [
                     CircleAvatar(
@@ -676,10 +673,7 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 10),
-
-                // ── Mutual + members ──────────────────────────────────────
                 Row(
                   children: [
                     Text(
@@ -707,8 +701,6 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // ── Approval badge ────────────────────────────────────────
                 if (community.requiresApproval && !isRequested) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -744,7 +736,6 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 if (isRequested) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -780,10 +771,7 @@ class _CommunityCard extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 12),
-
-                // ── Action row ────────────────────────────────────────────
                 Row(
                   children: [
                     Expanded(child: _buildJoinButton()),
@@ -918,8 +906,6 @@ class _CommunityCard extends StatelessWidget {
   }
 }
 
-// ─── Small Action Button ──────────────────────────────────────────────────────
-
 class _SmallActionButton extends StatelessWidget {
   const _SmallActionButton({
     required this.icon,
@@ -948,8 +934,6 @@ class _SmallActionButton extends StatelessWidget {
     );
   }
 }
-
-// ─── Pill Tab ─────────────────────────────────────────────────────────────────
 
 class _PillTab extends StatelessWidget {
   const _PillTab({required this.label, required this.active});
@@ -982,8 +966,6 @@ class _PillTab extends StatelessWidget {
     );
   }
 }
-
-// ─── Model ────────────────────────────────────────────────────────────────────
 
 class _Community {
   const _Community({

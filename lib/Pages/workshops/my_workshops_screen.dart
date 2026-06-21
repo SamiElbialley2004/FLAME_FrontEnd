@@ -229,7 +229,7 @@ class _WorkshopCard extends StatelessWidget {
               ],
             ],
           ),
-        ),
+        ],
       ),
     );
   }

@@ -38,67 +38,48 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
           Positioned(top: -80, right: -60, child: _GlowOrb(color: const Color(0xFFFF7A18).withValues(alpha: 0.16), size: 200)),
           Positioned(bottom: -100, left: -60, child: _GlowOrb(color: const Color(0xFF6D28D9).withValues(alpha: 0.14), size: 240)),
           SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            _BackButton(onTap: () => Navigator.of(context).pop()),
-                            const SizedBox(width: 12),
-                            const Text('My Learning', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        _ProgressCard(total: _videos.length, completed: _completed),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          height: 40,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _categories.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 8),
-                            itemBuilder: (_, i) {
-                              final sel = _selectedCategory == _categories[i];
-                              return GestureDetector(
-                                onTap: () => setState(() => _selectedCategory = _categories[i]),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: sel ? const Color(0xFFFF7A18).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.06),
-                                    borderRadius: BorderRadius.circular(999),
-                                    border: Border.all(color: sel ? const Color(0xFFFF7A18) : Colors.white.withValues(alpha: 0.1)),
-                                  ),
-                                  child: Text(_categories[i], style: TextStyle(color: sel ? Colors.white : const Color(0xFFB2B8CB), fontWeight: FontWeight.w600, fontSize: 13)),
-                                ),
-                              );
-                            },
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
+                    children: [
+                      _BackButton(onTap: () => Navigator.of(context).pop()),
+                      const SizedBox(width: 12),
+                      const Text('My Learning', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _ProgressCard(total: _videos.length, completed: _completed),
+                const SizedBox(height: 20),
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final sel = _selectedCategory == _categories[i];
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = _categories[i]),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel ? const Color(0xFFFF7A18).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: sel ? const Color(0xFFFF7A18) : Colors.white.withValues(alpha: 0.1)),
                           ),
+                          child: Text(_categories[i], style: TextStyle(color: sel ? Colors.white : const Color(0xFFB2B8CB), fontWeight: FontWeight.w600, fontSize: 13)),
                         ),
-                        const SizedBox(height: 16),
-                        Text('${videos.length} videos', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.75,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      childCount: videos.length,
-                      (_, i) => _VideoCard(video: videos[i]),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 16),
+                Text('${videos.length} videos', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
               ],
             ),
           ),

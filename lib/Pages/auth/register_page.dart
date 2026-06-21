@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flame/components/button.dart';
 import 'package:flame/components/text_field.dart';
@@ -64,7 +63,6 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /// 🔥 Gradient Background
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -73,21 +71,15 @@ class _RegisterPageState extends State<RegisterPage> {
             end: Alignment.bottomRight,
           ),
         ),
-
         child: SafeArea(
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
-
-              /// حل مشكلة overflow
               child: SingleChildScrollView(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-
-                  /// Glass Effect
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-
                     child: Container(
                       padding: const EdgeInsets.all(25),
                       decoration: BoxDecoration(
@@ -97,60 +89,40 @@ class _RegisterPageState extends State<RegisterPage> {
                           color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
-
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          /// LOGO
                           Image.asset(
-                            'images/FLAME_LOGO.png',
+                            'assets/images/FLAME_LOGO.png',
                             width: 140,
                             height: 140,
                           ),
-
                           const SizedBox(height: 10),
-
                           const Text(
                             "Let's create a new account for you",
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
-
                           const SizedBox(height: 25),
-
-                          /// EMAIL
                           MyTextField(
                             controller: emailController,
                             hintText: 'EMAIL',
                             obscureText: false,
                           ),
-
                           const SizedBox(height: 20),
-
-                          /// PASSWORD
                           MyTextField(
                             controller: passwordController,
-
                             hintText: 'PASSWORD',
                             obscureText: true,
                           ),
-
                           const SizedBox(height: 20),
-
-                          /// CONFIRM PASSWORD
                           MyTextField(
                             controller: confirmPasswordController,
                             hintText: 'Confirm PASSWORD',
                             obscureText: true,
                           ),
-
                           const SizedBox(height: 30),
-
-                          /// SIGN UP BUTTON
                           MyButton(onTap: signUp, text: 'Sign up'),
-
                           const SizedBox(height: 25),
-
-                          /// Divider
                           Row(
                             children: const [
                               Expanded(child: Divider(color: Colors.white)),
@@ -164,14 +136,10 @@ class _RegisterPageState extends State<RegisterPage> {
                               Expanded(child: Divider(color: Colors.white)),
                             ],
                           ),
-
                           const SizedBox(height: 20),
-
-                          /// SOCIAL LOGIN
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              /// GOOGLE
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -190,10 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   size: 35,
                                 ),
                               ),
-
                               const SizedBox(width: 25),
-
-                              /// FACEBOOK
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -214,10 +179,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 25),
-
-                          /// LOGIN LINK
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -225,9 +187,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 'Already have an account?',
                                 style: TextStyle(color: Colors.white),
                               ),
-
                               const SizedBox(width: 4),
-
                               GestureDetector(
                                 onTap: widget.onTap,
                                 child: const Text(

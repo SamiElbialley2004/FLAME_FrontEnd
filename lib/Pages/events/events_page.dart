@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -265,8 +265,6 @@ class _EventsPageState extends State<EventsPage> {
   }
 }
 
-// ─── Background ───────────────────────────────────────────────────────────────
-
 class _BackgroundGradient extends StatelessWidget {
   const _BackgroundGradient();
 
@@ -283,8 +281,6 @@ class _BackgroundGradient extends StatelessWidget {
     );
   }
 }
-
-// ─── Header ───────────────────────────────────────────────────────────────────
 
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
@@ -346,8 +342,6 @@ class _GlassIconButton extends StatelessWidget {
     );
   }
 }
-
-// ─── Search & Filter ──────────────────────────────────────────────────────────
 
 class _SearchInput extends StatelessWidget {
   const _SearchInput({required this.controller, required this.onChanged});
@@ -425,8 +419,6 @@ class _CategoryChip extends StatelessWidget {
     );
   }
 }
-
-// ─── Event Card ───────────────────────────────────────────────────────────────
 
 class _EventCard extends StatefulWidget {
   const _EventCard({required this.event, required this.animationDelay});
@@ -661,8 +653,6 @@ class _PillTag extends StatelessWidget {
   }
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -690,8 +680,6 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
-// ─── Create Event Dialog ──────────────────────────────────────────────────────
 
 class _CreateEventDialog extends StatefulWidget {
   const _CreateEventDialog();
@@ -936,8 +924,6 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
   }
 }
 
-// ─── Form helpers (reused from workshop pattern) ──────────────────────────────
-
 class _FormFieldBlock extends StatelessWidget {
   const _FormFieldBlock({
     required this.label,
@@ -1041,8 +1027,6 @@ class _UploadPlaceholder extends StatelessWidget {
     );
   }
 }
-
-// ─── Data Model ───────────────────────────────────────────────────────────────
 
 class _EventItem {
   const _EventItem({

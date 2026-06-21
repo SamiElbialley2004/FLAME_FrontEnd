@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flame/firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'auth/auth.dart';
+import 'pages/auth/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,9 +15,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthPage(),
+      title: 'Flame',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: const Color(0xFFFB923C),
+        scaffoldBackgroundColor: const Color(0xFF09090B),
+      ),
+      home: const AuthPage(),
     );
   }
 }

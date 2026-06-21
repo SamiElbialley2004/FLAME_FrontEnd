@@ -379,8 +379,6 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
   }
 }
 
-// ─── Chat Bubble ──────────────────────────────────────────────────────────────
-
 class _ChatBubble extends StatelessWidget {
   const _ChatBubble({required this.msg});
   final _Msg msg;
@@ -450,8 +448,6 @@ class _ChatBubble extends StatelessWidget {
     );
   }
 }
-
-// ─── Typing Indicator ─────────────────────────────────────────────────────────
 
 class _TypingBubble extends StatelessWidget {
   const _TypingBubble();
@@ -557,8 +553,6 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
     );
   }
 }
-
-// ─── Model ────────────────────────────────────────────────────────────────────
 
 class _Msg {
   const _Msg({required this.text, required this.isAI});
