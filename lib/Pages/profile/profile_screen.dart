@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../workshops/workshops_screen.dart';
+import '../workshops/my_workshops_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'my_learning_screen.dart';
@@ -528,7 +528,7 @@ class _MenuSection extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const WorkshopsScreen()),
+              MaterialPageRoute(builder: (_) => const MyWorkshopsScreen()),
             );
           },
         ),

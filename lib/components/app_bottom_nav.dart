@@ -77,7 +77,7 @@ class _AppNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? Colors.white : Colors.white70;
+    final color = active ? const Color(0xFFFB923C) : Colors.white70;
 
     return InkWell(
       borderRadius: BorderRadius.circular(10),

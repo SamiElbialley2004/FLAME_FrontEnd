@@ -1,5 +1,12 @@
+import 'dart:typed_data';
 import 'dart:ui';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../profile/profile_screen.dart';
 
 class EventsPage extends StatefulWidget {
@@ -689,8 +696,110 @@ class _CreateEventDialog extends StatefulWidget {
 }
 
 class _CreateEventDialogState extends State<_CreateEventDialog> {
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _timeController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _attendeesController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _imagePicker = ImagePicker();
+
   bool _isPaid = false;
   bool _isOnline = true;
+  bool _creating = false;
+  Uint8List? _coverImageBytes;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
+    _locationController.dispose();
+    _categoryController.dispose();
+    _attendeesController.dispose();
+    _priceController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.deepOrange : const Color(0xFF10B981),
+      ),
+    );
+  }
+
+  Future<void> _pickCoverImage() async {
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+    setState(() => _coverImageBytes = bytes);
+  }
+
+  Future<void> _createEvent() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _showMessage('Please enter an event name.');
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showMessage('Please sign in to create an event.');
+      return;
+    }
+
+    setState(() => _creating = true);
+    try {
+      String? coverImageUrl;
+      if (_coverImageBytes != null) {
+        final ref = FirebaseStorage.instance.ref().child(
+          'events/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        await ref.putData(
+          _coverImageBytes!,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        coverImageUrl = await ref.getDownloadURL();
+      }
+
+      await FirebaseFirestore.instance.collection('events').add({
+        'name': name,
+        'description': _descController.text.trim(),
+        'coverImageUrl': coverImageUrl,
+        'date': _dateController.text.trim(),
+        'time': _timeController.text.trim(),
+        'isOnline': _isOnline,
+        'location': _locationController.text.trim(),
+        'category': _categoryController.text.trim(),
+        'expectedAttendees': int.tryParse(_attendeesController.text.trim()) ?? 0,
+        'isFree': !_isPaid,
+        'price': _isPaid ? (double.tryParse(_priceController.text.trim()) ?? 0) : 0,
+        'notes': _notesController.text.trim(),
+        'organizerId': user.uid,
+        'organizerName': user.displayName ?? user.email ?? 'Anonymous',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showMessage('Event created successfully!', isError: false);
+    } catch (e) {
+      if (mounted) _showMessage('Failed to create event. Please try again.');
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -764,30 +873,43 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                         spacing: 14,
                         runSpacing: 14,
                         children: [
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Event name',
-                            child: _StyledTextField(hint: 'Enter event name'),
+                            child: _StyledTextField(
+                              hint: 'Enter event name',
+                              controller: _nameController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Description',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'What will attendees experience?',
                               maxLines: 4,
+                              controller: _descController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Upload cover image',
                             wide: true,
-                            child: _UploadPlaceholder(),
+                            child: _UploadPlaceholder(
+                              imageBytes: _coverImageBytes,
+                              onTap: _pickCoverImage,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Date',
-                            child: _StyledTextField(hint: 'e.g. June 5, 2025'),
+                            child: _StyledTextField(
+                              hint: 'e.g. June 5, 2025',
+                              controller: _dateController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Time',
-                            child: _StyledTextField(hint: 'e.g. 6:00 PM'),
+                            child: _StyledTextField(
+                              hint: 'e.g. 6:00 PM',
+                              controller: _timeController,
+                            ),
                           ),
                           _FormFieldBlock(
                             label: 'Event format',
@@ -817,19 +939,22 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                               hint: _isOnline
                                   ? 'Zoom / Google Meet link'
                                   : 'Full venue address',
+                              controller: _locationController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Category',
                             child: _StyledTextField(
                               hint: 'Summit / AI / Design / Community',
+                              controller: _categoryController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Expected attendees',
                             child: _StyledTextField(
                               hint: 'e.g. 200',
                               keyboardType: TextInputType.number,
+                              controller: _attendeesController,
                             ),
                           ),
                           _FormFieldBlock(
@@ -854,19 +979,21 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                             ),
                           ),
                           if (_isPaid)
-                            const _FormFieldBlock(
+                            _FormFieldBlock(
                               label: 'Ticket price',
                               child: _StyledTextField(
                                 hint: 'e.g. 120',
                                 keyboardType: TextInputType.number,
+                                controller: _priceController,
                               ),
                             ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Additional notes (optional)',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Schedule, dress code, requirements…',
                               maxLines: 3,
+                              controller: _notesController,
                             ),
                           ),
                           const Padding(
@@ -894,10 +1021,7 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
-                            // TODO(firebase): Create event document and upload cover image.
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: _creating ? null : _createEvent,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF7A18),
                             foregroundColor: Colors.white,
@@ -908,8 +1032,19 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            disabledBackgroundColor:
+                                const Color(0xFFFF7A18).withValues(alpha: 0.4),
                           ),
-                          child: const Text('Create Event'),
+                          child: _creating
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Create Event'),
                         ),
                       ],
                     ),
@@ -963,17 +1098,20 @@ class _FormFieldBlock extends StatelessWidget {
 class _StyledTextField extends StatelessWidget {
   const _StyledTextField({
     required this.hint,
+    this.controller,
     this.maxLines = 1,
     this.keyboardType,
   });
 
   final String hint;
+  final TextEditingController? controller;
   final int maxLines;
   final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       style: const TextStyle(color: Colors.white),
@@ -1000,29 +1138,78 @@ class _StyledTextField extends StatelessWidget {
 }
 
 class _UploadPlaceholder extends StatelessWidget {
-  const _UploadPlaceholder();
+  const _UploadPlaceholder({
+    required this.onTap,
+    this.imageBytes,
+  });
+
+  final VoidCallback onTap;
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_photo_alternate_outlined, color: Colors.white70),
-            SizedBox(height: 8),
-            Text(
-              'Drop image or click to upload',
-              style: TextStyle(color: Color(0xFFC2C8D7)),
-            ),
-          ],
+    final hasImage = imageBytes != null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 120,
+        decoration: BoxDecoration(
+          color: hasImage
+              ? const Color(0xFFFF7A18).withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: hasImage
+                ? const Color(0xFFFF7A18)
+                : Colors.white.withValues(alpha: 0.15),
+          ),
         ),
+        child: hasImage
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(imageBytes!, fit: BoxFit.cover),
+                    Container(
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.65),
+                          ],
+                        ),
+                      ),
+                      child: const Text(
+                        'Tap to change image',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_photo_alternate_outlined, color: Colors.white70),
+                    SizedBox(height: 8),
+                    Text(
+                      'Drop image or click to upload',
+                      style: TextStyle(color: Color(0xFFC2C8D7)),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }

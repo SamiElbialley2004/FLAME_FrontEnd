@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../notifications_screen.dart';
 import '../messaging_screen.dart';
-import '../../home/home_page.dart';
+import '../../../components/app_tab_scope.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({super.key});
@@ -325,7 +325,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                       child: Row(
                         children: [
                           GestureDetector(
-                            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage())),
+                            onTap: () => AppTabScope.maybeOf(context)?.selectTab(0),
                             child: ShaderMask(
                               shaderCallback: (r) => const LinearGradient(
                                 colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
@@ -363,9 +363,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               IconButton(
-                                onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
-                                },
+                                onPressed: () => NotificationsScreen.show(context),
                                 icon: const Icon(
                                   Icons.notifications_outlined,
                                   size: 24,

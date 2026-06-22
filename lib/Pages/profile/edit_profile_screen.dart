@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -11,12 +10,22 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _nameController = TextEditingController(text: 'Jana Amr');
   final _usernameController = TextEditingController(text: 'janaamr');
-  final _bioController = TextEditingController(text: 'Creator & Learner. Passionate about design and AI.');
+  final _bioController = TextEditingController(
+    text: 'Creator & Learner. Passionate about design and AI.',
+  );
   final _websiteController = TextEditingController(text: '');
   String _selectedCategory = 'Design';
   bool _saving = false;
 
-  final List<String> _categories = ['Design', 'AI', 'Business', 'Finance', 'Tech', 'Education', 'Science'];
+  final List<String> _categories = [
+    'Design',
+    'AI',
+    'Business',
+    'Finance',
+    'Tech',
+    'Education',
+    'Science',
+  ];
 
   @override
   void dispose() {
@@ -42,8 +51,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       backgroundColor: const Color(0xFF09090B),
       body: Stack(
         children: [
-          Positioned(top: -80, right: -60, child: _GlowOrb(color: const Color(0xFFFF7A18).withValues(alpha: 0.18), size: 200)),
-          Positioned(bottom: -100, left: -60, child: _GlowOrb(color: const Color(0xFF6D28D9).withValues(alpha: 0.16), size: 240)),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: _GlowOrb(
+              color: const Color(0xFFFF7A18).withValues(alpha: 0.18),
+              size: 200,
+            ),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -60,
+            child: _GlowOrb(
+              color: const Color(0xFF6D28D9).withValues(alpha: 0.16),
+              size: 240,
+            ),
+          ),
           SafeArea(
             child: Column(
               children: [
@@ -53,13 +76,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       _BackButton(onTap: () => Navigator.of(context).pop()),
                       const SizedBox(width: 12),
-                      const Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                      const Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const Spacer(),
                       _saving
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF7A18)))
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFFFF7A18),
+                              ),
+                            )
                           : TextButton(
                               onPressed: _save,
-                              child: const Text('Save', style: TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w700, fontSize: 16)),
+                              child: const Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: Color(0xFFFF7A18),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                     ],
                   ),
@@ -78,23 +122,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 height: 96,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFFFF7A18), width: 3),
-                                  gradient: const LinearGradient(colors: [Color(0xFFFF7A18), Color(0xFFB83280)]),
+                                  border: Border.all(
+                                    color: const Color(0xFFFF7A18),
+                                    width: 3,
+                                  ),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFF7A18),
+                                      Color(0xFFB83280),
+                                    ],
+                                  ),
                                 ),
                                 child: const CircleAvatar(
                                   radius: 48,
                                   backgroundColor: Colors.transparent,
-                                  child: Icon(Icons.person_rounded, color: Colors.white, size: 48),
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.white,
+                                    size: 48,
+                                  ),
                                 ),
                               ),
                               Positioned(
-                                bottom: 0, right: 0,
+                                bottom: 0,
+                                right: 0,
                                 child: GestureDetector(
                                   onTap: () {},
                                   child: Container(
-                                    width: 30, height: 30,
-                                    decoration: const BoxDecoration(color: Color(0xFFFF7A18), shape: BoxShape.circle),
-                                    child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+                                    width: 30,
+                                    height: 30,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFFF7A18),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -102,10 +167,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Center(child: Text('Change photo', style: TextStyle(color: Color(0xFFFF7A18), fontSize: 13, fontWeight: FontWeight.w600))),
+                        const Center(
+                          child: Text(
+                            'Change photo',
+                            style: TextStyle(
+                              color: Color(0xFFFF7A18),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 28),
                         _FieldLabel('Full Name'),
-                        _StyledField(controller: _nameController, hint: 'Your full name'),
+                        _StyledField(
+                          controller: _nameController,
+                          hint: 'Your full name',
+                        ),
                         const SizedBox(height: 16),
                         _FieldLabel('Username'),
                         _StyledField(
@@ -113,15 +190,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           hint: 'username',
                           prefix: const Padding(
                             padding: EdgeInsets.only(left: 14, right: 4),
-                            child: Text('@', style: TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w700)),
+                            child: Text(
+                              '@',
+                              style: TextStyle(
+                                color: Color(0xFFFF7A18),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
                         _FieldLabel('Bio'),
-                        _StyledField(controller: _bioController, hint: 'Tell people about yourself…', maxLines: 3),
+                        _StyledField(
+                          controller: _bioController,
+                          hint: 'Tell people about yourself…',
+                          maxLines: 3,
+                        ),
                         const SizedBox(height: 16),
                         _FieldLabel('Website'),
-                        _StyledField(controller: _websiteController, hint: 'https://yoursite.com'),
+                        _StyledField(
+                          controller: _websiteController,
+                          hint: 'https://yoursite.com',
+                        ),
                         const SizedBox(height: 20),
                         _FieldLabel('Primary Category'),
                         const SizedBox(height: 10),
@@ -131,16 +221,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           children: _categories.map((cat) {
                             final sel = cat == _selectedCategory;
                             return GestureDetector(
-                              onTap: () => setState(() => _selectedCategory = cat),
+                              onTap: () =>
+                                  setState(() => _selectedCategory = cat),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: sel ? const Color(0xFFFF7A18).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: sel ? const Color(0xFFFF7A18) : Colors.white.withValues(alpha: 0.1)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
                                 ),
-                                child: Text(cat, style: TextStyle(color: sel ? Colors.white : const Color(0xFFB2B8CB), fontWeight: FontWeight.w600, fontSize: 13)),
+                                decoration: BoxDecoration(
+                                  color: sel
+                                      ? const Color(
+                                          0xFFFF7A18,
+                                        ).withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: sel
+                                        ? const Color(0xFFFF7A18)
+                                        : Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    color: sel
+                                        ? Colors.white
+                                        : const Color(0xFFB2B8CB),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             );
                           }).toList(),
@@ -154,12 +265,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               backgroundColor: const Color(0xFFFF7A18),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              disabledBackgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              disabledBackgroundColor: const Color(
+                                0xFFFF7A18,
+                              ).withValues(alpha: 0.4),
                             ),
                             child: _saving
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -184,13 +312,25 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
     );
   }
 }
 
 class _StyledField extends StatelessWidget {
-  const _StyledField({required this.controller, required this.hint, this.maxLines = 1, this.prefix});
+  const _StyledField({
+    required this.controller,
+    required this.hint,
+    this.maxLines = 1,
+    this.prefix,
+  });
 
   final TextEditingController controller;
   final String hint;
@@ -209,9 +349,18 @@ class _StyledField extends StatelessWidget {
         prefix: prefix,
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFFF7A18), width: 1.2)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFFF7A18), width: 1.2),
+        ),
       ),
     );
   }
@@ -225,7 +374,15 @@ class _GlowOrb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: 30)]));
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: 30)],
+      ),
+    );
   }
 }
 
@@ -239,9 +396,18 @@ class _BackButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.07), shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
-        child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.07),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: Colors.white,
+          size: 18,
+        ),
       ),
     );
   }

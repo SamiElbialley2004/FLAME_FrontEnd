@@ -1,6 +1,16 @@
+import 'dart:typed_data';
 import 'dart:ui';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import '../profile/profile_screen.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../components/app_tab_scope.dart';
+import '../social/notifications_screen.dart';
+import 'my_workshops_screen.dart';
+import 'workshop_models.dart';
 
 class WorkshopPage extends StatefulWidget {
   const WorkshopPage({super.key});
@@ -12,76 +22,17 @@ class WorkshopPage extends StatefulWidget {
 class _WorkshopPageState extends State<WorkshopPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
+  List<WorkshopModel> _workshops = List<WorkshopModel>.from(
+    WorkshopModel.defaults,
+  );
+  final Set<String> _bookedKeys = {};
+  bool _loading = true;
+  String? _bookingKey;
 
-  final List<_WorkshopItem> _workshops = const [
-    _WorkshopItem(
-      name: 'Creative Branding Sprint',
-      description:
-          'Learn how to build a magnetic brand system in one practical session.',
-      creator: 'Sarah K.',
-      dateTime: 'May 10 • 5:30 PM',
-      availableSeats: 18,
-      tokenSeats: 4,
-      isFree: false,
-      price: 49.0,
-      category: 'Design',
-      location: 'Online (Zoom)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'AI Tools for Product Teams',
-      description:
-          'A practical workflow to automate discovery, writing, and handoff using AI.',
-      creator: 'Ibrahim N.',
-      dateTime: 'May 14 • 7:00 PM',
-      availableSeats: 35,
-      tokenSeats: 10,
-      isFree: true,
-      price: 0,
-      category: 'AI',
-      location: 'Flame Studio, Cairo',
-      imageUrl:
-          'https://images.unsplash.com/photo-1677442135136-760c813028c0?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'Monetization for Creators',
-      description:
-          'Build sustainable revenue streams with memberships, products, and events.',
-      creator: 'Mona H.',
-      dateTime: 'May 19 • 6:00 PM',
-      availableSeats: 12,
-      tokenSeats: 3,
-      isFree: false,
-      price: 79.0,
-      category: 'Business',
-      location: 'Online (Google Meet)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'Mobile UI Motion Lab',
-      description:
-          'Design polished interactions with modern motion principles and prototyping patterns.',
-      creator: 'Kareem T.',
-      dateTime: 'May 22 • 8:00 PM',
-      availableSeats: 22,
-      tokenSeats: 8,
-      isFree: false,
-      price: 59.0,
-      category: 'Design',
-      location: 'Online (Discord Stage)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?w=1200',
-    ),
-  ];
+  List<String> get _categories =>
+      <String>{'All', ..._workshops.map((w) => w.category)}.toList();
 
-  List<String> get _categories => <String>{
-    'All',
-    ..._workshops.map((w) => w.category),
-  }.toList();
-
-  List<_WorkshopItem> get _filteredWorkshops {
+  List<WorkshopModel> get _filteredWorkshops {
     final search = _searchController.text.trim().toLowerCase();
     return _workshops.where((workshop) {
       final categoryMatch =
@@ -95,6 +46,109 @@ class _WorkshopPageState extends State<WorkshopPage> {
     }).toList();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final workshops = await WorkshopRepository.fetchWorkshops();
+    final booked = user != null
+        ? await WorkshopRepository.fetchUserBookingKeys(user.uid)
+        : <String>{};
+    if (!mounted) return;
+    setState(() {
+      _workshops = workshops;
+      _bookedKeys
+        ..clear()
+        ..addAll(booked);
+      _loading = false;
+    });
+  }
+
+  Future<void> _bookWorkshop(WorkshopModel workshop) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showSnack('Please sign in to book a workshop.');
+      return;
+    }
+    if (_bookedKeys.contains(workshop.bookingKey)) {
+      _showSnack('You already booked this workshop.', isError: false);
+      return;
+    }
+    if (workshop.availableSeats <= 0) {
+      _showSnack('This workshop is fully booked.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        title: const Text('Confirm booking', style: TextStyle(color: Colors.white)),
+        content: Text(
+          workshop.isFree
+              ? 'Book "${workshop.name}" for free?'
+              : 'Book "${workshop.name}" for ${workshop.priceLabel}?',
+          style: const TextStyle(color: Color(0xFFC7CCDA)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A18),
+            ),
+            child: const Text('Book now'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _bookingKey = workshop.bookingKey);
+    try {
+      await WorkshopRepository.bookWorkshop(
+        workshop: workshop,
+        userId: user.uid,
+        userName: user.displayName ?? user.email ?? 'User',
+      );
+      if (!mounted) return;
+      setState(() {
+        _bookedKeys.add(workshop.bookingKey);
+        final index = _workshops.indexWhere(
+          (w) => w.bookingKey == workshop.bookingKey,
+        );
+        if (index >= 0 && _workshops[index].availableSeats > 0) {
+          _workshops[index] = _workshops[index].copyWith(
+            availableSeats: _workshops[index].availableSeats - 1,
+          );
+        }
+        _bookingKey = null;
+      });
+      _showSnack('Workshop booked successfully!', isError: false);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _bookingKey = null);
+        _showSnack('Booking failed. Please try again.');
+      }
+    }
+  }
+
+  void _showSnack(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.deepOrange : const Color(0xFF10B981),
+      ),
+    );
+  }
+
   Future<void> _openCreateWorkshopPanel() async {
     await showGeneralDialog<void>(
       context: context,
@@ -104,15 +158,24 @@ class _WorkshopPageState extends State<WorkshopPage> {
       transitionDuration: const Duration(milliseconds: 260),
       pageBuilder: (context, _, _) => const SizedBox.shrink(),
       transitionBuilder: (context, animation, _, __) {
-        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
         return FadeTransition(
           opacity: curved,
           child: ScaleTransition(
             scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
-            child: const _CreateWorkshopDialog(),
+            child: _CreateWorkshopDialog(onCreated: _loadData),
           ),
         );
       },
+    );
+  }
+
+  void _openMyWorkshops() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MyWorkshopsScreen()),
     );
   }
 
@@ -149,19 +212,18 @@ class _WorkshopPageState extends State<WorkshopPage> {
                             const Spacer(),
                             _GlassIconButton(
                               icon: Icons.notifications_none_rounded,
-                              onPressed: () {},
+                              onPressed: () => NotificationsScreen.show(context),
+                            ),
+                            const SizedBox(width: 10),
+                            _GlassIconButton(
+                              icon: Icons.school_outlined,
+                              onPressed: _openMyWorkshops,
                             ),
                             const SizedBox(width: 10),
                             _GlassIconButton(
                               icon: Icons.person_outline_rounded,
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ProfileScreen(),
-                                  ),
-                                );
-                              },
+                              onPressed: () =>
+                                  AppTabScope.maybeOf(context)?.selectTab(4),
                             ),
                           ],
                         ),
@@ -177,7 +239,10 @@ class _WorkshopPageState extends State<WorkshopPage> {
                         const SizedBox(height: 8),
                         const Text(
                           'Discover, create, and book premium learning experiences.',
-                          style: TextStyle(color: Color(0xFFC7CCDA), height: 1.3),
+                          style: TextStyle(
+                            color: Color(0xFFC7CCDA),
+                            height: 1.3,
+                          ),
                         ),
                         const SizedBox(height: 18),
                         _SearchInput(
@@ -190,7 +255,8 @@ class _WorkshopPageState extends State<WorkshopPage> {
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: _categories.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 8),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 8),
                             itemBuilder: (context, index) {
                               final category = _categories[index];
                               final selected = category == _selectedCategory;
@@ -239,21 +305,41 @@ class _WorkshopPageState extends State<WorkshopPage> {
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 110),
-                  sliver: workshops.isEmpty
+                  sliver: _loading
+                      ? const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFFFF7A18),
+                              ),
+                            ),
+                          ),
+                        )
+                      : workshops.isEmpty
                       ? const SliverToBoxAdapter(child: _EmptyState())
                       : SliverGrid(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: isMobile ? 0.86 : 0.92,
-                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: isMobile ? 0.86 : 0.92,
+                              ),
                           delegate: SliverChildBuilderDelegate(
                             childCount: workshops.length,
-                            (context, index) => _WorkshopCard(
-                              workshop: workshops[index],
-                              animationDelay: index * 70,
-                            ),
+                            (context, index) {
+                              final workshop = workshops[index];
+                              return _WorkshopCard(
+                                workshop: workshop,
+                                animationDelay: index * 70,
+                                isBooked: _bookedKeys.contains(
+                                  workshop.bookingKey,
+                                ),
+                                isBooking: _bookingKey == workshop.bookingKey,
+                                onBook: () => _bookWorkshop(workshop),
+                              );
+                            },
                           ),
                         ),
                 ),
@@ -295,7 +381,9 @@ class _BrandMark extends StatelessWidget {
           height: 32,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [Color(0xFFFF7A18), Color(0xFFB83280)]),
+            gradient: LinearGradient(
+              colors: [Color(0xFFFF7A18), Color(0xFFB83280)],
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -390,10 +478,19 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _WorkshopCard extends StatefulWidget {
-  const _WorkshopCard({required this.workshop, required this.animationDelay});
+  const _WorkshopCard({
+    required this.workshop,
+    required this.animationDelay,
+    required this.isBooked,
+    required this.isBooking,
+    required this.onBook,
+  });
 
-  final _WorkshopItem workshop;
+  final WorkshopModel workshop;
   final int animationDelay;
+  final bool isBooked;
+  final bool isBooking;
+  final VoidCallback onBook;
 
   @override
   State<_WorkshopCard> createState() => _WorkshopCardState();
@@ -430,7 +527,9 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.2),
@@ -503,11 +602,18 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          _CardDetail(icon: Icons.person_outline, text: item.creator),
-                          _CardDetail(icon: Icons.schedule_rounded, text: item.dateTime),
+                          _CardDetail(
+                            icon: Icons.person_outline,
+                            text: item.creator,
+                          ),
+                          _CardDetail(
+                            icon: Icons.schedule_rounded,
+                            text: item.dateTime,
+                          ),
                           _CardDetail(
                             icon: Icons.event_seat_outlined,
-                            text: '${item.availableSeats} seats • ${item.tokenSeats} token seats',
+                            text:
+                                '${item.availableSeats} seats • ${item.tokenSeats} token seats',
                           ),
                           _CardDetail(
                             icon: Icons.language_rounded,
@@ -517,20 +623,40 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                // TODO(firebase): Connect booking flow to Firestore and payments.
-                              },
+                              onPressed: widget.isBooked || widget.isBooking
+                                  ? null
+                                  : widget.onBook,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF7A18),
+                                backgroundColor: widget.isBooked
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFFF7A18),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor: widget.isBooked
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.6)
+                                    : const Color(0xFFFF7A18).withValues(alpha: 0.4),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Book',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
+                              child: widget.isBooking
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      widget.isBooked
+                                          ? 'Booked'
+                                          : item.availableSeats <= 0
+                                          ? 'Full'
+                                          : 'Book',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
@@ -605,15 +731,122 @@ class _PillTag extends StatelessWidget {
 }
 
 class _CreateWorkshopDialog extends StatefulWidget {
-  const _CreateWorkshopDialog();
+  const _CreateWorkshopDialog({required this.onCreated});
+
+  final VoidCallback onCreated;
 
   @override
   State<_CreateWorkshopDialog> createState() => _CreateWorkshopDialogState();
 }
 
 class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _seatsController = TextEditingController();
+  final _tokenSeatsController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _imagePicker = ImagePicker();
+
   bool _isPaid = false;
+  bool _creating = false;
   String _paymentMethod = 'Credit card';
+  Uint8List? _coverImageBytes;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _seatsController.dispose();
+    _tokenSeatsController.dispose();
+    _priceController.dispose();
+    _dateController.dispose();
+    _categoryController.dispose();
+    _locationController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.deepOrange : const Color(0xFF10B981),
+      ),
+    );
+  }
+
+  Future<void> _pickCoverImage() async {
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (image == null || !mounted) return;
+
+    final bytes = await image.readAsBytes();
+    setState(() => _coverImageBytes = bytes);
+  }
+
+  Future<void> _createWorkshop() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _showMessage('Please enter a workshop name.');
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showMessage('Please sign in to create a workshop.');
+      return;
+    }
+
+    setState(() => _creating = true);
+    try {
+      String? coverImageUrl;
+      if (_coverImageBytes != null) {
+        final ref = FirebaseStorage.instance.ref().child(
+          'workshops/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        await ref.putData(
+          _coverImageBytes!,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        coverImageUrl = await ref.getDownloadURL();
+      }
+
+      await FirebaseFirestore.instance.collection('workshops').add({
+        'name': name,
+        'description': _descController.text.trim(),
+        'coverImageUrl': coverImageUrl,
+        'availableSeats': int.tryParse(_seatsController.text.trim()) ?? 0,
+        'tokenSeats': int.tryParse(_tokenSeatsController.text.trim()) ?? 0,
+        'isFree': !_isPaid,
+        'paymentMethod': _isPaid ? _paymentMethod : null,
+        'price': _isPaid
+            ? (double.tryParse(_priceController.text.trim()) ?? 0)
+            : 0,
+        'dateTime': _dateController.text.trim(),
+        'category': _categoryController.text.trim(),
+        'location': _locationController.text.trim(),
+        'notes': _notesController.text.trim(),
+        'creatorId': user.uid,
+        'creatorName': user.displayName ?? user.email ?? 'Anonymous',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      widget.onCreated();
+      _showMessage('Workshop created successfully!', isError: false);
+    } catch (e) {
+      if (mounted) _showMessage('Failed to create workshop. Please try again.');
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -665,7 +898,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Build your workshop details and publish later with Firebase.',
+                                'Fill in the details and publish your workshop.',
                                 style: TextStyle(color: Color(0xFFB7BECE)),
                               ),
                             ],
@@ -679,7 +912,10 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                       ],
                     ),
                   ),
-                  Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+                  Divider(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    height: 1,
+                  ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -687,35 +923,44 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         spacing: 14,
                         runSpacing: 14,
                         children: [
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Workshop name',
-                            child: _StyledTextField(hint: 'Enter workshop name'),
+                            child: _StyledTextField(
+                              hint: 'Enter workshop name',
+                              controller: _nameController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Workshop description',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Describe what participants will learn',
                               maxLines: 4,
+                              controller: _descController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Upload cover image',
                             wide: true,
-                            child: _UploadPlaceholder(),
+                            child: _UploadPlaceholder(
+                              imageBytes: _coverImageBytes,
+                              onTap: _pickCoverImage,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Number of seats',
                             child: _StyledTextField(
                               hint: 'e.g. 30',
                               keyboardType: TextInputType.number,
+                              controller: _seatsController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Token seats',
                             child: _StyledTextField(
                               hint: 'e.g. 5',
                               keyboardType: TextInputType.number,
+                              controller: _tokenSeatsController,
                             ),
                           ),
                           _FormFieldBlock(
@@ -729,8 +974,12 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                                     onChanged: (value) =>
                                         setState(() => _isPaid = value),
                                     title: Text(
-                                      _isPaid ? 'Paid workshop' : 'Free workshop',
-                                      style: const TextStyle(color: Colors.white),
+                                      _isPaid
+                                          ? 'Paid workshop'
+                                          : 'Free workshop',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                     contentPadding: EdgeInsets.zero,
                                     activeThumbColor: const Color(0xFFFF7A18),
@@ -744,9 +993,8 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               label: 'Payment method',
                               child: _StyledDropdown(
                                 value: _paymentMethod,
-                                onChanged: (value) => setState(
-                                  () => _paymentMethod = value!,
-                                ),
+                                onChanged: (value) =>
+                                    setState(() => _paymentMethod = value!),
                                 items: const [
                                   'Credit card',
                                   'Wallet',
@@ -755,44 +1003,43 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               ),
                             ),
                           if (_isPaid)
-                            const _FormFieldBlock(
+                            _FormFieldBlock(
                               label: 'Price',
                               child: _StyledTextField(
                                 hint: 'e.g. 49',
                                 keyboardType: TextInputType.number,
+                                controller: _priceController,
                               ),
                             ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Date and time',
-                            child: _StyledTextField(hint: 'May 10, 5:30 PM'),
+                            child: _StyledTextField(
+                              hint: 'May 10, 5:30 PM',
+                              controller: _dateController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Category',
-                            child: _StyledTextField(hint: 'Design / AI / Business'),
+                            child: _StyledTextField(
+                              hint: 'Design / AI / Business',
+                              controller: _categoryController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Location or online link',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Venue address or meeting link',
+                              controller: _locationController,
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Requirements / notes (optional)',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Any prerequisites or attendee notes',
                               maxLines: 3,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text(
-                              'TODO(firebase): Connect this form to Firebase Auth, Storage, and Firestore when backend is ready.',
-                              style: TextStyle(
-                                color: Color(0xFF919AB1),
-                                fontSize: 12,
-                              ),
+                              controller: _notesController,
                             ),
                           ),
                         ],
@@ -810,10 +1057,7 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
-                            // TODO(firebase): Create workshop document and upload cover image.
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: _creating ? null : _createWorkshop,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF7A18),
                             foregroundColor: Colors.white,
@@ -824,8 +1068,20 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            disabledBackgroundColor: const Color(
+                              0xFFFF7A18,
+                            ).withValues(alpha: 0.4),
                           ),
-                          child: const Text('Create Workshop'),
+                          child: _creating
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Create Workshop'),
                         ),
                       ],
                     ),
@@ -854,7 +1110,9 @@ class _FormFieldBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final blockWidth = wide ? width : (width > 900 ? (width * 0.8 - 74) / 2 : width);
+    final blockWidth = wide
+        ? width
+        : (width > 900 ? (width * 0.8 - 74) / 2 : width);
     return SizedBox(
       width: blockWidth,
       child: Column(
@@ -878,17 +1136,20 @@ class _FormFieldBlock extends StatelessWidget {
 class _StyledTextField extends StatelessWidget {
   const _StyledTextField({
     required this.hint,
+    this.controller,
     this.maxLines = 1,
     this.keyboardType,
   });
 
   final String hint;
+  final TextEditingController? controller;
   final int maxLines;
   final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       style: const TextStyle(color: Colors.white),
@@ -928,7 +1189,7 @@ class _StyledDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: const Color(0xFF101521),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -947,10 +1208,7 @@ class _StyledDropdown extends StatelessWidget {
       onChanged: onChanged,
       items: items
           .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            ),
+            (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
           )
           .toList(),
     );
@@ -958,29 +1216,78 @@ class _StyledDropdown extends StatelessWidget {
 }
 
 class _UploadPlaceholder extends StatelessWidget {
-  const _UploadPlaceholder();
+  const _UploadPlaceholder({required this.onTap, this.imageBytes});
+
+  final VoidCallback onTap;
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_photo_alternate_outlined, color: Colors.white70),
-            SizedBox(height: 8),
-            Text(
-              'Drop image or click to upload',
-              style: TextStyle(color: Color(0xFFC2C8D7)),
-            ),
-          ],
+    final hasImage = imageBytes != null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 120,
+        decoration: BoxDecoration(
+          color: hasImage
+              ? const Color(0xFFFF7A18).withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: hasImage
+                ? const Color(0xFFFF7A18)
+                : Colors.white.withValues(alpha: 0.15),
+          ),
         ),
+        child: hasImage
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(imageBytes!, fit: BoxFit.cover),
+                    Container(
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.65),
+                          ],
+                        ),
+                      ),
+                      child: const Text(
+                        'Tap to change image',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: Colors.white70,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Drop image or click to upload',
+                      style: TextStyle(color: Color(0xFFC2C8D7)),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -1042,32 +1349,4 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
-}
-
-class _WorkshopItem {
-  const _WorkshopItem({
-    required this.name,
-    required this.description,
-    required this.creator,
-    required this.dateTime,
-    required this.availableSeats,
-    required this.tokenSeats,
-    required this.isFree,
-    required this.price,
-    required this.category,
-    required this.location,
-    required this.imageUrl,
-  });
-
-  final String name;
-  final String description;
-  final String creator;
-  final String dateTime;
-  final int availableSeats;
-  final int tokenSeats;
-  final bool isFree;
-  final double price;
-  final String category;
-  final String location;
-  final String imageUrl;
 }
