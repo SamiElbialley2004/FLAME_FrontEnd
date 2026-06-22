@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Add this
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Add this
 import 'package:flame/components/button.dart';
 import 'package:flame/components/text_field.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +20,9 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  // Added loading state to prevent double clicks and show progress
+  bool isLoading = false;
+
   @override
   void dispose() {
     emailController.dispose();
@@ -26,6 +31,18 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  // Helper to show errors
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.deepOrange,
+      ),
+    );
+  }
+
+  // Standard Email/Pass Sign Up
   Future<void> signUp() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
@@ -41,23 +58,57 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    setState(() => isLoading = true);
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Registration failed. Please try again.');
-    } catch (_) {
-      _showError('Something went wrong. Please try again.');
+      _showError(e.message ?? 'Registration failed.');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  // GOOGLE SIGN IN LOGIC
+  Future<void> signInWithGoogle() async {
+    setState(() => isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+
+      if (googleAuth != null) {
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+    } catch (e) {
+      _showError("Google Sign-In failed.");
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  // FACEBOOK SIGN IN LOGIC
+  // FACEBOOK SIGN IN LOGIC
+  Future<void> signInWithFacebook() async {
+    setState(() => isLoading = true);
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        // CHANGED: result.accessToken!.token instead of tokenString
+        final credential = FacebookAuthProvider.credential(result.accessToken!.token);
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+    } catch (e) {
+      _showError("Facebook Sign-In failed.");
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -121,7 +172,12 @@ class _RegisterPageState extends State<RegisterPage> {
                             obscureText: true,
                           ),
                           const SizedBox(height: 30),
-                          MyButton(onTap: signUp, text: 'Sign up'),
+
+                          // Conditional Loading UI
+                          isLoading
+                              ? const CircularProgressIndicator(color: Colors.deepOrange)
+                              : MyButton(onTap: signUp, text: 'Sign up'),
+
                           const SizedBox(height: 25),
                           Row(
                             children: const [
@@ -140,39 +196,21 @@ class _RegisterPageState extends State<RegisterPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      blurRadius: 10,
-                                      color: Colors.black.withValues(alpha: .3),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.g_mobiledata,
+                              // Google Button
+                              GestureDetector(
+                                onTap: signInWithGoogle,
+                                child: _SocialTile(
+                                  icon: Icons.g_mobiledata,
                                   color: Colors.red,
                                   size: 35,
                                 ),
                               ),
                               const SizedBox(width: 25),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      blurRadius: 10,
-                                      color: Colors.black.withValues(alpha: .3),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.facebook,
+                              // Facebook Button
+                              GestureDetector(
+                                onTap: signInWithFacebook,
+                                child: _SocialTile(
+                                  icon: Icons.facebook,
                                   color: Colors.blue,
                                   size: 28,
                                 ),
@@ -210,6 +248,33 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Reusable UI for social icons
+class _SocialTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _SocialTile({required this.icon, required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: Colors.black.withValues(alpha: .3),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: color, size: size),
     );
   }
 }

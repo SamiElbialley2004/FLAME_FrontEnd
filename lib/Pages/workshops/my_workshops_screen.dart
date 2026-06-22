@@ -124,7 +124,11 @@ class _WorkshopList extends StatelessWidget {
 }
 
 class _WorkshopCard extends StatelessWidget {
-  const _WorkshopCard({required this.item, required this.showActions, required this.showRating, required this.showManage});
+  const _WorkshopCard({    required this.item,
+    required this.showActions,
+    required this.showRating,
+    required this.showManage,
+  });
 
   final _WorkshopEntry item;
   final bool showActions;
@@ -151,26 +155,49 @@ class _WorkshopCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFF7A18).withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
-                    child: Text(item.category, style: const TextStyle(color: Color(0xFFFF7A18), fontSize: 11, fontWeight: FontWeight.w700)),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF7A18).withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      item.category,
+                      style: const TextStyle(
+                        color: Color(0xFFFF7A18),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: item.price == 'Free' ? const Color(0xFF10B981).withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.07),
+                      color: item.price == 'Free'
+                          ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                          : Colors.white.withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(item.price, style: TextStyle(color: item.price == 'Free' ? const Color(0xFF10B981) : Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      item.price,
+                      style: TextStyle(
+                        color: item.price == 'Free' ? const Color(0xFF10B981) : Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(item.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(
+                item.title,
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 8),
               _Detail(icon: Icons.person_outline, text: item.organizer),
               _Detail(icon: Icons.schedule_rounded, text: item.dateTime),
               _Detail(icon: Icons.language_rounded, text: item.location),
+
               if (showActions) ...[
                 const SizedBox(height: 12),
                 Row(
@@ -178,7 +205,11 @@ class _WorkshopCard extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {},
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: Colors.white.withValues(alpha: 0.2)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         icon: const Icon(Icons.calendar_today_outlined, size: 16),
                         label: const Text('Add to Calendar'),
                       ),
@@ -187,7 +218,11 @@ class _WorkshopCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF7A18),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         icon: const Icon(Icons.link_rounded, size: 16),
                         label: const Text('Join Link'),
                       ),
@@ -212,7 +247,11 @@ class _WorkshopCard extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {},
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: Colors.white.withValues(alpha: 0.2)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         child: const Text('Edit'),
                       ),
                     ),
@@ -220,7 +259,11 @@ class _WorkshopCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF7A18),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         child: const Text('Manage'),
                       ),
                     ),
@@ -229,7 +272,7 @@ class _WorkshopCard extends StatelessWidget {
               ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }

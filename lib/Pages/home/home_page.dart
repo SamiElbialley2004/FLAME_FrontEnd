@@ -1,14 +1,12 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+
 import '../profile/profile_screen.dart';
 import '../social/communities/communities_screen.dart';
 import '../events/events_screen.dart';
 import '../workshops/workshops_screen.dart';
-import '../social/notifications_screen.dart';
-import '../social/messaging_screen.dart';
-import '../features/search_screen.dart';
-import 'video_upload_screen.dart';
 import 'comments_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -40,15 +38,6 @@ class _HomePageState extends State<HomePage> {
       actionLabel: 'Learn more',
       gradient: [Color(0xFF78350F), Color(0xFF9D174D), Color(0xFF09090B)],
     ),
-    _VideoItem(
-      creatorName: 'Finance Lab',
-      caption: 'Budget framework for creators in 60 seconds',
-      category: 'Finance',
-      likes: '9.7K',
-      comments: '611',
-      actionLabel: 'Save for later',
-      gradient: [Color(0xFF134E4A), Color(0xFF0F766E), Color(0xFF09090B)],
-    ),
   ];
 
   Future<void> _openCreateMenu() async {
@@ -61,9 +50,7 @@ class _HomePageState extends State<HomePage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return const _CreateMenuSheet();
-      },
+      builder: (context) => const _CreateMenuSheet(),
     );
   }
 
@@ -77,8 +64,10 @@ class _HomePageState extends State<HomePage> {
             scrollDirection: Axis.vertical,
             itemCount: _videos.length,
             itemBuilder: (context, index) {
-              final video = _videos[index];
-              return _VideoCard(item: video, onCreateTap: _openCreateMenu);
+              return _VideoCard(
+                  item: _videos[index],
+                  onCreateTap: _openCreateMenu
+              );
             },
           ),
           const _TopHeader(),
@@ -87,159 +76,143 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedNavIndex,
         onTap: (index) {
-          if (index == 1) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkshopsScreen()));
-            return;
+          if (index == 0) {
+            setState(() => _selectedNavIndex = index);
+          } else {
+            Widget nextPage;
+            switch (index) {
+              case 1: nextPage = const WorkshopsScreen(); break;
+              case 2: nextPage = const EventsScreen(); break;
+              case 3: nextPage = const CommunitiesScreen(); break;
+              case 4: nextPage = const ProfileScreen(); break;
+              default: return;
+            }
+            Navigator.push(context, MaterialPageRoute(builder: (_) => nextPage));
           }
-          if (index == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen()));
-            return;
-          }
-          if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunitiesScreen()));
-            return;
-          }
-          if (index == 4) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-            return;
-          }
-
-          setState(() {
-            _selectedNavIndex = index;
-          });
         },
       ),
     );
   }
 }
 
-class _TopHeader extends StatelessWidget {
-  const _TopHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: IgnorePointer(
-        ignoring: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xAA000000), Color(0x00000000)],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                const _BrandLogo(),
-                const Spacer(),
-                _IconCircleButton(
-                  icon: Icons.notifications_outlined,
-                  label: 'Notifications',
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
-                  },
-                ),
-                const SizedBox(width: 8),
-                _IconCircleButton(
-                  icon: Icons.send_outlined,
-                  label: 'Direct messages',
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagingScreen()));
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BrandLogo extends StatelessWidget {
-  const _BrandLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Color(0xFFFB923C), Color(0xFFEF4444)],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Flame',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VideoCard extends StatelessWidget {
+class _VideoCard extends StatefulWidget {
   const _VideoCard({required this.item, required this.onCreateTap});
 
   final _VideoItem item;
   final Future<void> Function() onCreateTap;
 
   @override
+  State<_VideoCard> createState() => _VideoCardState();
+}
+
+class _VideoCardState extends State<_VideoCard> {
+  bool isLiked = false;
+  bool isSaved = false;
+
+  // Unified Like Logic (No more popup message)
+  void _handleLike() {
+    setState(() => isLiked = !isLiked);
+  }
+
+  void _handleShare() {
+    Share.share("Check out ${widget.item.creatorName}'s video on FLAME: ${widget.item.caption}");
+  }
+
+  void _handleSave() {
+    setState(() => isSaved = !isSaved);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isSaved ? "Saved to your list!" : "Removed from list"),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: item.gradient,
+    return GestureDetector(
+      // Detect double tap on the screen to like
+      onDoubleTap: _handleLike,
+      child: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                colors: widget.item.gradient,
+              ),
             ),
           ),
-        ),
-        Container(color: Colors.black38),
-        Positioned(
-          right: 12,
-          bottom: 145,
-          child: _SideActions(item: item, onCreateTap: onCreateTap),
-        ),
-        Positioned(
-          left: 12,
-          right: 86,
-          bottom: 65,
-          child: _LearningContext(item: item),
-        ),
-        Positioned(
-          left: 12,
-          right: 86,
-          bottom: 16,
-          child: const _FeedSearchBar(),
-        ),
-      ],
+          Container(color: Colors.black38),
+
+          // Side Action Buttons
+          Positioned(
+            right: 12,
+            bottom: 145,
+            child: _SideActions(
+              item: widget.item,
+              onCreateTap: widget.onCreateTap,
+              isLiked: isLiked,
+              onLike: _handleLike,
+              onShare: _handleShare,
+            ),
+          ),
+
+          // Video Text/Context Info
+          Positioned(
+            left: 12,
+            right: 86,
+            bottom: 65,
+            child: _LearningContext(
+              item: widget.item,
+              isSaved: isSaved,
+              onSave: _handleSave,
+            ),
+          ),
+
+          const Positioned(
+            left: 12, right: 86, bottom: 16,
+            child: _FeedSearchBar(),
+          ),
+        ],
+      ),
     );
   }
 }
 
+class _VideoItem {
+  final String creatorName;
+  final String caption;
+  final String category;
+  final String likes;
+  final String comments;
+  final String actionLabel;
+  final List<Color> gradient;
+
+  const _VideoItem({
+    required this.creatorName,
+    required this.caption,
+    required this.category,
+    required this.likes,
+    required this.comments,
+    required this.actionLabel,
+    required this.gradient,
+  });
+}
+
 class _LearningContext extends StatelessWidget {
-  const _LearningContext({required this.item});
+  const _LearningContext({
+    required this.item,
+    required this.isSaved,
+    required this.onSave,
+  });
 
   final _VideoItem item;
+  final bool isSaved;
+  final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
@@ -263,68 +236,37 @@ class _LearningContext extends StatelessWidget {
                   CircleAvatar(
                     radius: 14,
                     backgroundColor: Colors.orange.shade300,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.black,
-                      size: 16,
-                    ),
+                    child: const Icon(Icons.person, color: Colors.black, size: 16),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    item.creatorName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text(item.creatorName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 3,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.4),
-                      ),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
                     ),
-                    child: Text(
-                      item.category,
-                      style: const TextStyle(
-                        color: Color(0xFFFED7AA),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: Text(item.category, style: const TextStyle(color: Color(0xFFFED7AA), fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                item.caption,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.25,
-                ),
-              ),
+              Text(item.caption, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.25)),
               const SizedBox(height: 12),
               TextButton.icon(
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
+                  foregroundColor: isSaved ? Colors.orange : Colors.white,
                   backgroundColor: Colors.white.withValues(alpha: 0.08),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
+                    side: BorderSide(color: isSaved ? Colors.orange : Colors.white.withValues(alpha: 0.2)),
                   ),
                 ),
-                onPressed: () {},
-                icon: const Icon(Icons.bookmark_border, size: 18),
-                label: Text(item.actionLabel),
+                onPressed: onSave,
+                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                label: Text(isSaved ? "Saved" : item.actionLabel),
               ),
             ],
           ),
@@ -335,19 +277,30 @@ class _LearningContext extends StatelessWidget {
 }
 
 class _SideActions extends StatelessWidget {
-  const _SideActions({required this.item, required this.onCreateTap});
+  const _SideActions({
+    required this.item,
+    required this.onCreateTap,
+    required this.isLiked,
+    required this.onLike,
+    required this.onShare,
+  });
 
   final _VideoItem item;
   final Future<void> Function() onCreateTap;
+  final bool isLiked;
+  final VoidCallback onLike;
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         _ActionIcon(
-          icon: Icons.favorite_border,
+          icon: isLiked ? Icons.favorite : Icons.favorite_border,
           label: 'Like',
           value: item.likes,
+          color: isLiked ? Colors.red : Colors.white,
+          onTap: onLike,
         ),
         const SizedBox(height: 16),
         _ActionIcon(
@@ -357,10 +310,11 @@ class _SideActions extends StatelessWidget {
           onTap: () => CommentsScreen.show(context),
         ),
         const SizedBox(height: 16),
-        const _ActionIcon(
+        _ActionIcon(
           icon: Icons.reply_outlined,
           label: 'Share',
           value: 'Share',
+          onTap: onShare,
         ),
         const SizedBox(height: 16),
         _CreateActionIcon(onTap: onCreateTap),
@@ -375,155 +329,83 @@ class _ActionIcon extends StatelessWidget {
     required this.label,
     required this.value,
     this.onTap,
+    this.color = Colors.white,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return _HoverableActionButton(
-      icon: icon,
-      label: label,
-      value: value,
-      onTap: onTap ?? () {},
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopHeader extends StatelessWidget {
+  const _TopHeader();
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 50, left: 20, right: 20,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text("For You", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          IconButton(icon: const Icon(Icons.notifications_none, color: Colors.white), onPressed: () {}),
+        ],
+      ),
     );
   }
 }
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.selectedIndex, required this.onTap});
-
   final int selectedIndex;
-  final ValueChanged<int> onTap;
+  final Function(int) onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-        decoration: BoxDecoration(
-          color: const Color(0xE509090B),
-          border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _NavItem(
-              icon: Icons.home_outlined,
-              label: 'Home',
-              active: selectedIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _NavItem(
-              icon: Icons.school_outlined,
-              label: 'Workshops',
-              active: selectedIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _NavItem(
-              icon: Icons.event_outlined,
-              label: 'Events',
-              active: selectedIndex == 2,
-              onTap: () => onTap(2),
-            ),
-            _NavItem(
-              icon: Icons.groups_outlined,
-              label: 'Communities',
-              active: selectedIndex == 3,
-              onTap: () => onTap(3),
-            ),
-            _NavItem(
-              icon: Icons.person_outline,
-              label: 'Profile',
-              active: selectedIndex == 4,
-              onTap: () => onTap(4),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? Colors.white : Colors.white70;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
+    return BottomNavigationBar(
+      currentIndex: selectedIndex,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 1),
-            Text(label, style: TextStyle(color: color, fontSize: 10)),
-          ],
-        ),
-      ),
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.black,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.white54,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.work), label: "Workshops"),
+        BottomNavigationBarItem(icon: Icon(Icons.event), label: "Events"),
+        BottomNavigationBarItem(icon: Icon(Icons.group), label: "Groups"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ],
     );
   }
 }
 
 class _CreateActionIcon extends StatelessWidget {
   const _CreateActionIcon({required this.onTap});
-
-  final Future<void> Function() onTap;
-
+  final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 55,
-      height: 55,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.black.withValues(alpha: 0.5),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(26),
-            onTap: onTap,
-            hoverColor: Colors.orange.withValues(alpha: 0.18),
-            child: Ink(
-              width: 42,
-              height: 42,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFFB923C),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x66FB923C),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 40),
-            ),
-          ),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+        child: const Icon(Icons.add, color: Colors.black),
       ),
     );
   }
@@ -531,266 +413,30 @@ class _CreateActionIcon extends StatelessWidget {
 
 class _CreateMenuSheet extends StatelessWidget {
   const _CreateMenuSheet();
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Create with Flame',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _CreateOptionTile(
-            icon: Icons.video_library_outlined,
-            title: 'Create a Reel',
-            subtitle: 'Share a quick educational video.',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const VideoUploadScreen()));
-            },
-          ),
-          _CreateOptionTile(
-            icon: Icons.menu_book_outlined,
-            title: 'Create a Workshop',
-            subtitle: 'Host a structured learning session.',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkshopsScreen()));
-            },
-          ),
-          _CreateOptionTile(
-            icon: Icons.event_available_outlined,
-            title: 'Create an Event',
-            subtitle: 'Schedule a live or in-person learning event.',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const EventsScreen()));
-            },
-          ),
-          _CreateOptionTile(
-            icon: Icons.diversity_3_outlined,
-            title: 'Create a Community',
-            subtitle: 'Start a focused knowledge group.',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunitiesScreen()));
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreateOptionTile extends StatelessWidget {
-  const _CreateOptionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: const Color(0xFF18181B),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap ?? () => Navigator.of(context).pop(),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, color: const Color(0xFFFB923C)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return Container(
+      height: 200,
+      child: const Center(child: Text("Upload Video Options", style: TextStyle(color: Colors.white))),
     );
   }
 }
 
 class _FeedSearchBar extends StatelessWidget {
   const _FeedSearchBar();
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()));
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 10,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.search, color: Colors.white70, size: 20),
-            SizedBox(width: 10),
-            Text(
-              'Search topics, creators, or workshops',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 40,
+      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)),
+      child: const Row(
+        children: [
+          Icon(Icons.search, color: Colors.white54, size: 20),
+          SizedBox(width: 10),
+          const Text("Search content...", style: TextStyle(color: Colors.white54)),
+        ],
       ),
     );
   }
-}
-
-class _IconCircleButton extends StatelessWidget {
-  const _IconCircleButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton.filledTonal(
-      onPressed: onPressed,
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.black.withValues(alpha: 0.45),
-        foregroundColor: Colors.white,
-      ),
-      tooltip: label,
-      icon: Icon(icon, size: 20),
-    );
-  }
-}
-
-class _HoverableActionButton extends StatefulWidget {
-  const _HoverableActionButton({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  @override
-  State<_HoverableActionButton> createState() => _HoverableActionButtonState();
-}
-
-class _HoverableActionButtonState extends State<_HoverableActionButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _isHovered
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : Colors.black.withValues(alpha: 0.5),
-            ),
-            child: IconButton(
-              onPressed: widget.onTap,
-              tooltip: widget.label,
-              color: Colors.white,
-              icon: Icon(widget.icon),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          widget.value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VideoItem {
-  const _VideoItem({
-    required this.creatorName,
-    required this.caption,
-    required this.category,
-    required this.likes,
-    required this.comments,
-    required this.actionLabel,
-    required this.gradient,
-  });
-
-  final String creatorName;
-  final String caption;
-  final String category;
-  final String likes;
-  final String comments;
-  final String actionLabel;
-  final List<Color> gradient;
 }
