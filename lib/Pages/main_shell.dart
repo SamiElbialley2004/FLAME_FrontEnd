@@ -37,10 +37,7 @@ class _MainShellState extends State<MainShell> {
       selectTab: _selectTab,
       child: Scaffold(
         backgroundColor: const Color(0xFF09090B),
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: _pages,
-        ),
+        body: IndexedStack(index: _selectedIndex, children: _pages),
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _selectedIndex,
           onTap: _selectTab,

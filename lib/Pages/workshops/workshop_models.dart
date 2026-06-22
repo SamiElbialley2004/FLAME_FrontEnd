@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class WorkshopModel {
   const WorkshopModel({
@@ -182,16 +185,27 @@ class WorkshopBooking {
 }
 
 class WorkshopRepository {
+  static const _defaultCoverImage =
+      'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200';
+
   static Future<List<WorkshopModel>> fetchWorkshops() async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('workshops')
-          .orderBy('createdAt', descending: true)
-          .get();
+      QuerySnapshot<Map<String, dynamic>> snap;
+      try {
+        snap = await FirebaseFirestore.instance
+            .collection('workshops')
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (_) {
+        snap = await FirebaseFirestore.instance.collection('workshops').get();
+      }
       final remote = snap.docs
           .map((d) => WorkshopModel.fromFirestore(d.id, d.data()))
           .toList();
-      return [...remote, ...WorkshopModel.defaults];
+      if (remote.isEmpty) {
+        return List<WorkshopModel>.from(WorkshopModel.defaults);
+      }
+      return remote;
     } catch (_) {
       return List<WorkshopModel>.from(WorkshopModel.defaults);
     }
@@ -239,6 +253,92 @@ class WorkshopRepository {
     } catch (_) {
       return [];
     }
+  }
+
+  static Future<WorkshopModel> createWorkshop({
+    required String userId,
+    required String creatorName,
+    required String name,
+    required String description,
+    required int availableSeats,
+    required int tokenSeats,
+    required bool isPaid,
+    required String paymentMethod,
+    required double price,
+    required String dateTime,
+    required String category,
+    required String location,
+    required String notes,
+    Uint8List? coverImageBytes,
+  }) async {
+    var coverImageUrl = _defaultCoverImage;
+
+    if (coverImageBytes != null) {
+      try {
+        final ref = FirebaseStorage.instance.ref().child(
+          'workshops/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        await ref.putData(
+          coverImageBytes,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        coverImageUrl = await ref.getDownloadURL();
+      } catch (_) {
+        // Keep default cover if storage upload fails (e.g. rules not configured).
+      }
+    }
+
+    final data = <String, dynamic>{
+      'name': name,
+      'description': description,
+      'coverImageUrl': coverImageUrl,
+      'availableSeats': availableSeats,
+      'tokenSeats': tokenSeats,
+      'isFree': !isPaid,
+      'price': isPaid ? price : 0,
+      'dateTime': dateTime,
+      'category': category.isEmpty ? 'General' : category,
+      'location': location.isEmpty ? 'Online' : location,
+      'notes': notes,
+      'creatorId': userId,
+      'creatorName': creatorName,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    if (isPaid) {
+      data['paymentMethod'] = paymentMethod;
+    }
+
+    final doc =
+        await FirebaseFirestore.instance.collection('workshops').add(data);
+
+    return WorkshopModel(
+      id: doc.id,
+      name: name,
+      description: description,
+      creator: creatorName,
+      dateTime: dateTime.isEmpty ? 'TBD' : dateTime,
+      availableSeats: availableSeats,
+      tokenSeats: tokenSeats,
+      isFree: !isPaid,
+      price: isPaid ? price : 0,
+      category: category.isEmpty ? 'General' : category,
+      location: location.isEmpty ? 'Online' : location,
+      imageUrl: coverImageUrl,
+      creatorId: userId,
+      notes: notes,
+    );
+  }
+
+  static String friendlyError(Object error) {
+    final message = error.toString().toLowerCase();
+    if (message.contains('permission') || message.contains('denied')) {
+      return 'Permission denied. Check Firebase Firestore rules for the workshops collection.';
+    }
+    if (message.contains('network')) {
+      return 'Network error. Check your connection and try again.';
+    }
+    return 'Failed to create workshop. Please try again.';
   }
 
   static Future<void> bookWorkshop({

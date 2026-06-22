@@ -1,9 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -166,7 +164,15 @@ class _WorkshopPageState extends State<WorkshopPage> {
           opacity: curved,
           child: ScaleTransition(
             scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
-            child: _CreateWorkshopDialog(onCreated: _loadData),
+            child: _CreateWorkshopDialog(
+              onCreated: (workshop) {
+                setState(() {
+                  _workshops.insert(0, workshop);
+                });
+                _showSnack('Workshop created successfully!', isError: false);
+              },
+              onError: (message) => _showSnack(message),
+            ),
           ),
         );
       },
@@ -731,9 +737,13 @@ class _PillTag extends StatelessWidget {
 }
 
 class _CreateWorkshopDialog extends StatefulWidget {
-  const _CreateWorkshopDialog({required this.onCreated});
+  const _CreateWorkshopDialog({
+    required this.onCreated,
+    required this.onError,
+  });
 
-  final VoidCallback onCreated;
+  final ValueChanged<WorkshopModel> onCreated;
+  final ValueChanged<String> onError;
 
   @override
   State<_CreateWorkshopDialog> createState() => _CreateWorkshopDialogState();
@@ -770,15 +780,6 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
     super.dispose();
   }
 
-  void _showMessage(String message, {bool isError = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.deepOrange : const Color(0xFF10B981),
-      ),
-    );
-  }
-
   Future<void> _pickCoverImage() async {
     final image = await _imagePicker.pickImage(
       source: ImageSource.gallery,
@@ -793,56 +794,42 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
   Future<void> _createWorkshop() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      _showMessage('Please enter a workshop name.');
+      widget.onError('Please enter a workshop name.');
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      _showMessage('Please sign in to create a workshop.');
+      widget.onError('Please sign in to create a workshop.');
       return;
     }
 
     setState(() => _creating = true);
     try {
-      String? coverImageUrl;
-      if (_coverImageBytes != null) {
-        final ref = FirebaseStorage.instance.ref().child(
-          'workshops/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
-        );
-        await ref.putData(
-          _coverImageBytes!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-        coverImageUrl = await ref.getDownloadURL();
-      }
-
-      await FirebaseFirestore.instance.collection('workshops').add({
-        'name': name,
-        'description': _descController.text.trim(),
-        'coverImageUrl': coverImageUrl,
-        'availableSeats': int.tryParse(_seatsController.text.trim()) ?? 0,
-        'tokenSeats': int.tryParse(_tokenSeatsController.text.trim()) ?? 0,
-        'isFree': !_isPaid,
-        'paymentMethod': _isPaid ? _paymentMethod : null,
-        'price': _isPaid
-            ? (double.tryParse(_priceController.text.trim()) ?? 0)
-            : 0,
-        'dateTime': _dateController.text.trim(),
-        'category': _categoryController.text.trim(),
-        'location': _locationController.text.trim(),
-        'notes': _notesController.text.trim(),
-        'creatorId': user.uid,
-        'creatorName': user.displayName ?? user.email ?? 'Anonymous',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final workshop = await WorkshopRepository.createWorkshop(
+        userId: user.uid,
+        creatorName: user.displayName ?? user.email ?? 'Anonymous',
+        name: name,
+        description: _descController.text.trim(),
+        availableSeats: int.tryParse(_seatsController.text.trim()) ?? 0,
+        tokenSeats: int.tryParse(_tokenSeatsController.text.trim()) ?? 0,
+        isPaid: _isPaid,
+        paymentMethod: _paymentMethod,
+        price: double.tryParse(_priceController.text.trim()) ?? 0,
+        dateTime: _dateController.text.trim(),
+        category: _categoryController.text.trim(),
+        location: _locationController.text.trim(),
+        notes: _notesController.text.trim(),
+        coverImageBytes: _coverImageBytes,
+      );
 
       if (!mounted) return;
       Navigator.of(context).pop();
-      widget.onCreated();
-      _showMessage('Workshop created successfully!', isError: false);
+      widget.onCreated(workshop);
     } catch (e) {
-      if (mounted) _showMessage('Failed to create workshop. Please try again.');
+      if (mounted) {
+        widget.onError(WorkshopRepository.friendlyError(e));
+      }
     } finally {
       if (mounted) setState(() => _creating = false);
     }
