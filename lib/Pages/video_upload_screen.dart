@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/reel_service.dart';
 
 class VideoUploadScreen extends StatefulWidget {
   const VideoUploadScreen({super.key});
@@ -13,7 +15,7 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
   final _descController = TextEditingController();
   final _tagsController = TextEditingController();
   String _selectedCategory = 'AI';
-  bool _videoSelected = false;
+  XFile? _videoFile;
   bool _thumbnailSelected = false;
   bool _uploading = false;
 
@@ -27,6 +29,11 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
     super.dispose();
   }
 
+  Future<void> _pickVideo() async {
+    final file = await ImagePicker().pickVideo(source: ImageSource.gallery);
+    if (file != null && mounted) setState(() => _videoFile = file);
+  }
+
   Future<void> _publish() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -34,14 +41,32 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
       );
       return;
     }
-    setState(() => _uploading = true);
-    await Future<void>.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() => _uploading = false);
+    if (_videoFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video submitted for review!'), backgroundColor: Color(0xFF10B981)),
+        const SnackBar(content: Text('Please select a video'), backgroundColor: Color(0xFF374151)),
       );
-      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _uploading = true);
+    try {
+      await ReelService.upload(
+        videoPath: _videoFile!.path,
+        caption: _titleController.text.trim(),
+        preferences: _selectedCategory,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video submitted for review!'), backgroundColor: Color(0xFF10B981)),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _uploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Upload failed. Please try again.'), backgroundColor: Color(0xFFEF4444)),
+        );
+      }
     }
   }
 
@@ -78,16 +103,16 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         GestureDetector(
-                          onTap: () => setState(() => _videoSelected = true),
+                          onTap: _pickVideo,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             height: 180,
                             decoration: BoxDecoration(
-                              color: _videoSelected ? const Color(0xFFFF7A18).withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+                              color: _videoFile != null ? const Color(0xFFFF7A18).withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: _videoSelected ? const Color(0xFFFF7A18) : Colors.white.withValues(alpha: 0.15),
-                                width: _videoSelected ? 1.5 : 1,
+                                color: _videoFile != null ? const Color(0xFFFF7A18) : Colors.white.withValues(alpha: 0.15),
+                                width: _videoFile != null ? 1.5 : 1,
                                 style: BorderStyle.solid,
                               ),
                             ),
@@ -96,16 +121,16 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    _videoSelected ? Icons.check_circle_rounded : Icons.video_call_rounded,
-                                    color: _videoSelected ? const Color(0xFFFF7A18) : Colors.white38,
+                                    _videoFile != null ? Icons.check_circle_rounded : Icons.video_call_rounded,
+                                    color: _videoFile != null ? const Color(0xFFFF7A18) : Colors.white38,
                                     size: 48,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    _videoSelected ? 'Video selected ✓' : 'Tap to select video',
-                                    style: TextStyle(color: _videoSelected ? const Color(0xFFFF7A18) : Colors.white54, fontWeight: FontWeight.w600, fontSize: 15),
+                                    _videoFile != null ? 'Video selected ✓' : 'Tap to select video',
+                                    style: TextStyle(color: _videoFile != null ? const Color(0xFFFF7A18) : Colors.white54, fontWeight: FontWeight.w600, fontSize: 15),
                                   ),
-                                  if (!_videoSelected) ...[
+                                  if (_videoFile == null) ...[
                                     const SizedBox(height: 6),
                                     const Text('MP4, MOV — Max 60 seconds', style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
                                   ],

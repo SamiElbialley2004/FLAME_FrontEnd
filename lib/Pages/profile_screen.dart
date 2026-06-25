@@ -1,8 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../auth/auth.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'public_profile_screen.dart';
 import 'my_learning_screen.dart';
 import 'my_workshops_screen.dart';
 import 'liked_videos_screen.dart';
@@ -10,12 +12,100 @@ import 'saved_content_screen.dart';
 import 'wallet_screen.dart';
 import 'followers_screen.dart';
 import 'moderation_panel_screen.dart';
+import '../models/user_model.dart';
+import '../services/user_service.dart';
+import '../services/auth_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  UserModel? _user;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final user = await UserService.getMe();
+      if (mounted) setState(() { _user = user; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _logout() async {
+    await AuthService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthPage()),
+      (_) => false,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF09090B),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFFB923C))),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF09090B),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person_off_rounded, color: Colors.white38, size: 56),
+                const SizedBox(height: 16),
+                const Text(
+                  'Could not load profile',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your session may have expired. Please log out and log in again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _loadUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFB923C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                  ),
+                  child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _logout,
+                  child: const Text('Log out & log in again', style: TextStyle(color: Color(0xFFFB923C))),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
       body: Stack(
@@ -26,17 +116,17 @@ class ProfileScreen extends StatelessWidget {
               slivers: [
                 SliverToBoxAdapter(
                   child: Column(
-                    children: const [
-                      _ProfileHeader(),
-                      SizedBox(height: 18),
-                      _ProfileActions(),
-                      SizedBox(height: 18),
-                      _StatsSection(),
-                      SizedBox(height: 18),
-                      _CreatorCard(),
-                      SizedBox(height: 18),
-                      _MenuSection(),
-                      SizedBox(height: 30),
+                    children: [
+                      _ProfileHeader(user: _user),
+                      const SizedBox(height: 18),
+                      _ProfileActions(user: _user),
+                      const SizedBox(height: 18),
+                      const _StatsSection(),
+                      const SizedBox(height: 18),
+                      const _CreatorCard(),
+                      const SizedBox(height: 18),
+                      const _MenuSection(),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -86,10 +176,13 @@ class _GlowOrb extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  const _ProfileHeader({this.user});
+  final UserModel? user;
 
   @override
   Widget build(BuildContext context) {
+    final displayName = user?.fullName ?? 'Loading...';
+    final handle = user != null ? '@${user!.email.split('@').first}' : '';
     return Container(
       height: 330,
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -172,15 +265,15 @@ class _ProfileHeader extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Jana Amr', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                              SizedBox(height: 4),
-                              Text('@janaamr', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              SizedBox(height: 10),
-                              _ProfileBadge(text: 'Creator • Learner'),
+                              Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 4),
+                              Text(handle, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              const SizedBox(height: 10),
+                              const _ProfileBadge(text: 'Creator • Learner'),
                             ],
                           ),
                         ),
@@ -243,39 +336,90 @@ class _CircleIconButton extends StatelessWidget {
 }
 
 class _ProfileActions extends StatelessWidget {
-  const _ProfileActions();
+  const _ProfileActions({this.user});
+  final UserModel? user;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFB923C),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFB923C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
               ),
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  label: const Text('Share', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PublicProfileScreen(
+                  creatorName: user?.fullName ?? 'My Profile',
+                  gradient: const [Color(0xFF7C2D12), Color(0xFF9A3412), Color(0xFF09090B)],
+                ),
               ),
-              icon: const Icon(Icons.share_outlined, size: 18),
-              label: const Text('Share', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFFF7A18).withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.remove_red_eye_outlined, color: Color(0xFFFF7A18), size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Preview my public profile',
+                        style: TextStyle(
+                          color: Color(0xFFFFB073),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFF7A18), size: 13),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],

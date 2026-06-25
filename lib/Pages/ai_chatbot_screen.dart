@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../services/ai_service.dart';
 
 class AIChatbotScreen extends StatefulWidget {
   const AIChatbotScreen({super.key});
@@ -39,47 +40,32 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
     final t = text.trim();
     if (t.isEmpty) return;
     _controller.clear();
+    final history = _messages
+        .map((m) => AiMessage(role: m.isAI ? 'assistant' : 'user', content: m.text))
+        .toList();
     setState(() {
       _messages.add(_Msg(text: t, isAI: false));
       _isTyping = true;
     });
     _scrollToBottom();
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-    setState(() {
-      _isTyping = false;
-      _messages.add(_Msg(text: _reply(t), isAI: true));
-    });
+    try {
+      final reply = await AiService.chat(t, context: history);
+      if (!mounted) return;
+      setState(() {
+        _isTyping = false;
+        _messages.add(_Msg(text: reply, isAI: true));
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isTyping = false;
+        _messages.add(const _Msg(
+          text: 'Sorry, I could not reach the server. Please try again.',
+          isAI: true,
+        ));
+      });
+    }
     _scrollToBottom();
-  }
-
-  String _reply(String input) {
-    final q = input.toLowerCase();
-    if (q.contains('machine learning') || q.contains(' ml') || q.contains('deep learning') || q.contains('ai')) {
-      return "Machine learning lets computers learn patterns from data without being explicitly programmed.\n\n📌 Roadmap: Python → NumPy/Pandas → scikit-learn → Deep Learning\n\nCheck Dr. Amina's AI series on Flame — she breaks it down perfectly for beginners! 🤖";
-    }
-    if (q.contains('design') || q.contains('ui') || q.contains('ux') || q.contains('figma')) {
-      return "Great field! Key pillars of strong design:\n\n• Visual hierarchy — guide the user's eye\n• Color theory — create emotion and clarity\n• Spacing & typography — readability matters\n\nPractice daily in Figma and study real apps critically. DesignWithSam's Flame videos are a solid resource 🎨";
-    }
-    if (q.contains('finance') || q.contains('money') || q.contains('invest') || q.contains('budget')) {
-      return "Personal finance in 3 steps:\n\n1️⃣ Track every pound — know where it goes\n2️⃣ Build an emergency fund (3–6 months expenses)\n3️⃣ Invest consistently, even small amounts\n\nFinance Lab on Flame covers practical Egyptian market advice 💰";
-    }
-    if (q.contains('workshop') || q.contains('session') || q.contains('host')) {
-      return "Workshops on Flame are live, structured sessions hosted by experts. You can:\n\n• Browse upcoming ones in the Workshops tab\n• Book a seat (some require tokens)\n• Or host your own if you're an expert!\n\nWhat topic are you looking for?";
-    }
-    if (q.contains('community') || q.contains('group') || q.contains('join')) {
-      return "Communities on Flame are topic-focused groups where learners share resources, ask questions, and grow together.\n\n🔍 Find communities in the Community tab — filter by interests like AI, Design, Finance, or Business.";
-    }
-    if (q.contains('token') || q.contains('coins') || q.contains('pay')) {
-      return "Flame Tokens are the in-app currency! Use them to:\n\n• Book premium workshops\n• Access exclusive content\n• Support your favourite creators\n\nHead to Wallet & Tokens in your Profile to top up 🪙";
-    }
-    if (q.contains('hello') || q.contains('hi') || q.contains('hey')) {
-      return "Hey! Great to see you 👋\n\nI'm Flame AI — here to make your learning faster and more focused. Ask me to:\n\n• Explain any concept\n• Recommend Flame content\n• Build a learning plan\n\nWhat are you working on?";
-    }
-    if (q.contains('thank') || q.contains('great') || q.contains('awesome')) {
-      return "You're welcome! Keep that curiosity going 🔥\n\nRemember — consistent daily learning, even 20 minutes, compounds massively over time. What else can I help you with?";
-    }
-    return "Great question! Here's how I'd approach it:\n\nBreak it into small, digestible pieces. Start with the fundamentals, practice actively (not passively), and revisit concepts after 24 hours to lock them in.\n\nWould you like me to suggest a specific learning path or find relevant content on Flame?";
   }
 
   void _scrollToBottom() {

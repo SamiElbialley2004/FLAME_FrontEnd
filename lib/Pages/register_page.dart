@@ -1,9 +1,12 @@
 import 'dart:ui';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
 import 'package:flame/components/button.dart';
 import 'package:flame/components/text_field.dart';
 import 'package:flutter/material.dart';
+
+import '../Pages/home_page.dart';
+import '../services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   final Function()? onTap;
@@ -15,12 +18,17 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  bool _busy = false;
 
   @override
   void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -28,11 +36,14 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> signUp() async {
+    final firstName = firstNameController.text.trim();
+    final lastName = lastNameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty ||
+        password.isEmpty || confirmPassword.isEmpty) {
       _showError('Please fill in all fields.');
       return;
     }
@@ -42,29 +53,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    setState(() => _busy = true);
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      await AuthService.register(
+        firstName: firstName,
+        lastName: lastName,
         email: email,
         password: password,
       );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Registration failed. Please try again.');
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    } on DioException catch (e) {
+      if (mounted) _showError(AuthService.mapDioError(e));
     } catch (_) {
-      _showError('Something went wrong. Please try again.');
+      if (mounted) _showError('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /// 🔥 Gradient Background
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -73,21 +91,15 @@ class _RegisterPageState extends State<RegisterPage> {
             end: Alignment.bottomRight,
           ),
         ),
-
         child: SafeArea(
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
-
-              /// حل مشكلة overflow
               child: SingleChildScrollView(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-
-                  /// Glass Effect
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-
                     child: Container(
                       padding: const EdgeInsets.all(25),
                       decoration: BoxDecoration(
@@ -97,60 +109,56 @@ class _RegisterPageState extends State<RegisterPage> {
                           color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
-
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          /// LOGO
                           Image.asset(
-                            'images/FLAME_LOGO.png',
-                            width: 140,
-                            height: 140,
+                            'assets/images/FLAME_LOGO.png',
+                            width: 100,
+                            height: 100,
                           ),
-
                           const SizedBox(height: 10),
-
                           const Text(
-                            "Let's create a new account for you",
+                            "Create your account",
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
-
                           const SizedBox(height: 25),
-
-                          /// EMAIL
+                          MyTextField(
+                            controller: firstNameController,
+                            hintText: 'FIRST NAME',
+                            obscureText: false,
+                          ),
+                          const SizedBox(height: 12),
+                          MyTextField(
+                            controller: lastNameController,
+                            hintText: 'LAST NAME',
+                            obscureText: false,
+                          ),
+                          const SizedBox(height: 12),
                           MyTextField(
                             controller: emailController,
                             hintText: 'EMAIL',
                             obscureText: false,
                           ),
-
-                          const SizedBox(height: 20),
-
-                          /// PASSWORD
+                          const SizedBox(height: 12),
                           MyTextField(
                             controller: passwordController,
-
                             hintText: 'PASSWORD',
                             obscureText: true,
                           ),
-
-                          const SizedBox(height: 20),
-
-                          /// CONFIRM PASSWORD
+                          const SizedBox(height: 12),
                           MyTextField(
                             controller: confirmPasswordController,
-                            hintText: 'Confirm PASSWORD',
+                            hintText: 'CONFIRM PASSWORD',
                             obscureText: true,
                           ),
-
-                          const SizedBox(height: 30),
-
-                          /// SIGN UP BUTTON
-                          MyButton(onTap: signUp, text: 'Sign up'),
-
                           const SizedBox(height: 25),
-
-                          /// Divider
+                          _busy
+                              ? const CircularProgressIndicator(
+                                  color: Color(0xFFFF7A18),
+                                )
+                              : MyButton(onTap: signUp, text: 'Sign up'),
+                          const SizedBox(height: 25),
                           Row(
                             children: const [
                               Expanded(child: Divider(color: Colors.white)),
@@ -164,14 +172,10 @@ class _RegisterPageState extends State<RegisterPage> {
                               Expanded(child: Divider(color: Colors.white)),
                             ],
                           ),
-
                           const SizedBox(height: 20),
-
-                          /// SOCIAL LOGIN
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              /// GOOGLE
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -190,10 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   size: 35,
                                 ),
                               ),
-
                               const SizedBox(width: 25),
-
-                              /// FACEBOOK
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -214,10 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 25),
-
-                          /// LOGIN LINK
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -225,9 +223,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 'Already have an account?',
                                 style: TextStyle(color: Colors.white),
                               ),
-
                               const SizedBox(width: 4),
-
                               GestureDetector(
                                 onTap: widget.onTap,
                                 child: const Text(

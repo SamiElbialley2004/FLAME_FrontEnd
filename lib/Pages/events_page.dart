@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import '../models/event_model.dart';
+import '../services/event_service.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -12,73 +14,36 @@ class EventsPage extends StatefulWidget {
 class _EventsPageState extends State<EventsPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
+  List<_EventItem> _events = [];
+  bool _loading = true;
+  String? _error;
 
-  final List<_EventItem> _events = const [
-    _EventItem(
-      name: 'Flame Creator Summit 2025',
-      description:
-          'An exclusive gathering of top educators, creators, and learners to shape the future of short-form learning.',
-      organizer: 'Flame Team',
-      dateTime: 'Jun 5 • 10:00 AM',
-      location: 'Cairo Tech Hub, Nasr City',
-      category: 'Summit',
-      imageUrl:
-          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
-      attendees: 320,
-      isFree: false,
-      price: 120.0,
-      isOnline: false,
-    ),
-    _EventItem(
-      name: 'AI in Education Webinar',
-      description:
-          'Learn how artificial intelligence is transforming how we teach and learn across all disciplines.',
-      organizer: 'Ibrahim N.',
-      dateTime: 'Jun 12 • 6:00 PM',
-      location: 'Online (Zoom)',
-      category: 'AI',
-      imageUrl:
-          'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?w=1200',
-      attendees: 540,
-      isFree: true,
-      price: 0,
-      isOnline: true,
-    ),
-    _EventItem(
-      name: 'Design Thinking Bootcamp',
-      description:
-          'A full-day hands-on bootcamp exploring design thinking methods used by global product teams.',
-      organizer: 'Sarah K.',
-      dateTime: 'Jun 18 • 9:00 AM',
-      location: 'AUC New Cairo',
-      category: 'Design',
-      imageUrl:
-          'https://images.unsplash.com/photo-1558655146-d09347e92766?w=1200',
-      attendees: 90,
-      isFree: false,
-      price: 85.0,
-      isOnline: false,
-    ),
-    _EventItem(
-      name: 'Open Mic: Knowledge Night',
-      description:
-          'A casual evening where creators share short talks on what they\'ve been learning this month.',
-      organizer: 'Mona H.',
-      dateTime: 'Jun 22 • 7:30 PM',
-      location: 'The Greek Campus, Dokki',
-      category: 'Community',
-      imageUrl:
-          'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200',
-      attendees: 150,
-      isFree: true,
-      price: 0,
-      isOnline: false,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    try {
+      final models = await EventService.getAll();
+      if (!mounted) return;
+      setState(() {
+        _events = models.map(_EventItem.fromModel).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load events. Check your connection.';
+        _loading = false;
+      });
+    }
+  }
 
   List<String> get _categories => <String>{
     'All',
-    ..._events.map((e) => e.category),
+    ..._events.map((e) => e.category).where((c) => c.isNotEmpty),
   }.toList();
 
   List<_EventItem> get _filteredEvents {
@@ -128,6 +93,34 @@ class _EventsPageState extends State<EventsPage> {
     final isMobile = size.width < 700;
     final crossAxisCount = isMobile ? 1 : (size.width < 1120 ? 2 : 3);
     final events = _filteredEvents;
+
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF07090F),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFFF7A18))),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF07090F),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, color: Colors.white38, size: 48),
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.white54)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () { setState(() { _loading = true; _error = null; }); _loadEvents(); },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18)),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF07090F),
@@ -1070,4 +1063,18 @@ class _EventItem {
   final bool isFree;
   final double price;
   final bool isOnline;
+
+  factory _EventItem.fromModel(EventModel m) => _EventItem(
+        name: m.title,
+        description: m.description ?? '',
+        organizer: 'Flame',
+        dateTime: 'TBA',
+        location: m.location ?? 'TBA',
+        category: 'Event',
+        imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
+        attendees: m.capacity ?? 0,
+        isFree: true,
+        price: 0,
+        isOnline: false,
+      );
 }

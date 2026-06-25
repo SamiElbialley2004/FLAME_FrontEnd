@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../Pages/home_page.dart';
+import '../services/auth_service.dart';
 import 'login_or_register.dart';
 
 class AuthPage extends StatelessWidget {
@@ -8,21 +8,22 @@ class AuthPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance
-            .authStateChanges(), //check the state of state
-        builder: (context, snapshot) {
-          // user is logged in
-          if (snapshot.hasData) {
-            return const HomePage();
-          }
-          // user is NOT logged in
-          else {
-            return const LoginOrRegister();
-          }
-        },
-      ),
+    return FutureBuilder<bool>(
+      future: AuthService.isLoggedIn(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF09090B),
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFFF7A18)),
+            ),
+          );
+        }
+        if (snapshot.data == true) {
+          return const HomePage();
+        }
+        return const LoginOrRegister();
+      },
     );
   }
 }

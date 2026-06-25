@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import '../models/workshop_model.dart';
+import '../services/workshop_service.dart';
 
 class WorkshopPage extends StatefulWidget {
   const WorkshopPage({super.key});
@@ -12,73 +14,36 @@ class WorkshopPage extends StatefulWidget {
 class _WorkshopPageState extends State<WorkshopPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
+  List<_WorkshopItem> _workshops = [];
+  bool _loading = true;
+  String? _error;
 
-  final List<_WorkshopItem> _workshops = const [
-    _WorkshopItem(
-      name: 'Creative Branding Sprint',
-      description:
-          'Learn how to build a magnetic brand system in one practical session.',
-      creator: 'Sarah K.',
-      dateTime: 'May 10 • 5:30 PM',
-      availableSeats: 18,
-      tokenSeats: 4,
-      isFree: false,
-      price: 49.0,
-      category: 'Design',
-      location: 'Online (Zoom)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'AI Tools for Product Teams',
-      description:
-          'A practical workflow to automate discovery, writing, and handoff using AI.',
-      creator: 'Ibrahim N.',
-      dateTime: 'May 14 • 7:00 PM',
-      availableSeats: 35,
-      tokenSeats: 10,
-      isFree: true,
-      price: 0,
-      category: 'AI',
-      location: 'Flame Studio, Cairo',
-      imageUrl:
-          'https://images.unsplash.com/photo-1677442135136-760c813028c0?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'Monetization for Creators',
-      description:
-          'Build sustainable revenue streams with memberships, products, and events.',
-      creator: 'Mona H.',
-      dateTime: 'May 19 • 6:00 PM',
-      availableSeats: 12,
-      tokenSeats: 3,
-      isFree: false,
-      price: 79.0,
-      category: 'Business',
-      location: 'Online (Google Meet)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200',
-    ),
-    _WorkshopItem(
-      name: 'Mobile UI Motion Lab',
-      description:
-          'Design polished interactions with modern motion principles and prototyping patterns.',
-      creator: 'Kareem T.',
-      dateTime: 'May 22 • 8:00 PM',
-      availableSeats: 22,
-      tokenSeats: 8,
-      isFree: false,
-      price: 59.0,
-      category: 'Design',
-      location: 'Online (Discord Stage)',
-      imageUrl:
-          'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?w=1200',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkshops();
+  }
+
+  Future<void> _loadWorkshops() async {
+    try {
+      final models = await WorkshopService.getAll();
+      if (!mounted) return;
+      setState(() {
+        _workshops = models.map(_WorkshopItem.fromModel).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load workshops. Check your connection.';
+        _loading = false;
+      });
+    }
+  }
 
   List<String> get _categories => <String>{
     'All',
-    ..._workshops.map((w) => w.category),
+    ..._workshops.map((w) => w.category).where((c) => c.isNotEmpty),
   }.toList();
 
   List<_WorkshopItem> get _filteredWorkshops {
@@ -124,6 +89,34 @@ class _WorkshopPageState extends State<WorkshopPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF07090F),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFFF7A18))),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF07090F),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, color: Colors.white38, size: 48),
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.white54)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () { setState(() { _loading = true; _error = null; }); _loadWorkshops(); },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18)),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final size = MediaQuery.sizeOf(context);
     final isMobile = size.width < 700;
     final crossAxisCount = isMobile ? 1 : (size.width < 1120 ? 2 : 3);
@@ -1070,4 +1063,18 @@ class _WorkshopItem {
   final String category;
   final String location;
   final String imageUrl;
+
+  factory _WorkshopItem.fromModel(WorkshopModel m) => _WorkshopItem(
+        name: m.title,
+        description: m.description ?? '',
+        creator: 'Flame',
+        dateTime: 'TBA',
+        availableSeats: m.capacity ?? 0,
+        tokenSeats: 0,
+        isFree: true,
+        price: 0,
+        category: 'Workshop',
+        location: m.location ?? 'TBA',
+        imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200',
+      );
 }

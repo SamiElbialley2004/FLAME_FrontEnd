@@ -1,6 +1,8 @@
 import 'dart:ui';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../services/auth_service.dart';
+import '../auth/auth.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -108,7 +110,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onTap: () async {
                           final confirm = await _confirmDialog(context, 'Sign Out', 'Are you sure you want to sign out?', 'Sign Out');
                           if (confirm == true && context.mounted) {
-                            await FirebaseAuth.instance.signOut();
+                            await AuthService.logout();
+                            if (context.mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                    builder: (_) => const AuthPage()),
+                                (_) => false,
+                              );
+                            }
                           }
                         },
                       ),

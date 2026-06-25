@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/Users/elbia/StudioProjects/FLAME_FrontEnd/windows"
+    "cmake.sourceDirectory": "C:/Users/elbia/StudioProjects/FLAME_FrontEnd/windows",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

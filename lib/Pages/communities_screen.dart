@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'notifications_screen.dart';
+import 'messaging_screen.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({super.key});
@@ -13,6 +15,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   final Set<int> _joinedIds = {};
   final Set<int> _requestedIds = {};
   final Set<int> _bookmarkedIds = {};
+  int _selectedTab = 0; // 0 = For You, 1 = Following
 
   final List<_Community> _communities = const [
     _Community(
@@ -89,9 +92,13 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   ];
 
   List<_Community> get _filtered {
+    // Following tab: strictly show only joined communities
+    var list = _selectedTab == 1
+        ? _communities.where((c) => _joinedIds.contains(c.id)).toList()
+        : _communities;
     final q = _searchController.text.toLowerCase();
-    if (q.isEmpty) return _communities;
-    return _communities
+    if (q.isEmpty) return list;
+    return list
         .where(
           (c) =>
               c.name.toLowerCase().contains(q) ||
@@ -284,6 +291,198 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     );
   }
 
+  Widget _buildEmptyState() {
+    final isFollowing = _selectedTab == 1;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFF7A18).withValues(alpha: 0.1),
+                border: Border.all(color: const Color(0xFFFF7A18).withValues(alpha: 0.3)),
+              ),
+              child: Icon(
+                isFollowing ? Icons.groups_outlined : Icons.search_off_rounded,
+                color: const Color(0xFFFF7A18),
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              isFollowing ? 'No communities yet' : 'No results found',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isFollowing
+                  ? 'Join communities from the For You tab and they will appear here.'
+                  : 'Try a different search term.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+            if (isFollowing) ...[
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () => setState(() => _selectedTab = 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF7A18), Color(0xFFFFB073)],
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF7A18).withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'Discover communities',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showShareSheet(String communityName) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF09090B).withValues(alpha: 0.93),
+              border: const Border(top: BorderSide(color: Color(0x1AFFFFFF))),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Share Community',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      communityName,
+                      style: const TextStyle(color: Color(0xFFFF7A18), fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _CommShareOption(
+                        icon: Icons.chat_rounded,
+                        label: 'WhatsApp',
+                        color: const Color(0xFF25D366),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(_snackBar('Opening WhatsApp...'));
+                        },
+                      ),
+                      _CommShareOption(
+                        icon: Icons.facebook_rounded,
+                        label: 'Facebook',
+                        color: const Color(0xFF1877F2),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(_snackBar('Opening Facebook...'));
+                        },
+                      ),
+                      _CommShareOption(
+                        icon: Icons.auto_awesome_rounded,
+                        label: 'Flame DM',
+                        color: const Color(0xFFFF7A18),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagingScreen()));
+                        },
+                      ),
+                      _CommShareOption(
+                        icon: Icons.link_rounded,
+                        label: 'Copy Link',
+                        color: Colors.white54,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(_snackBar('Link copied!'));
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  SnackBar _snackBar(String msg) => SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Text(msg),
+          ],
+        ),
+        backgroundColor: const Color(0xFFFF7A18),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+      );
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
@@ -336,20 +535,29 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             ),
                           ),
                           const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
+                          GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.07),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
                               ),
-                            ),
-                            child: const Row(
-                              children: [
-                                _PillTab(label: 'For You', active: true),
-                                _PillTab(label: 'Following', active: false),
-                              ],
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectedTab = 0),
+                                    child: _PillTab(label: 'For You', active: _selectedTab == 0),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectedTab = 1),
+                                    child: _PillTab(label: 'Following', active: _selectedTab == 1),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const Spacer(),
@@ -357,7 +565,10 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               IconButton(
-                                onPressed: () {},
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                ),
                                 icon: const Icon(
                                   Icons.notifications_outlined,
                                   size: 24,
@@ -389,7 +600,10 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             ],
                           ),
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const MessagingScreen()),
+                            ),
                             icon: const Icon(
                               Icons.chat_bubble_outline,
                               size: 22,
@@ -446,31 +660,33 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
 
                 // ── List ─────────────────────────────────────────────────────
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final c = filtered[i];
-                      return _CommunityCard(
-                        community: c,
-                        isJoined: _joinedIds.contains(c.id),
-                        isRequested: _requestedIds.contains(c.id),
-                        isBookmarked: _bookmarkedIds.contains(c.id),
-                        onJoin: () => _handleJoin(c),
-                        onBookmark: () {
-                          setState(() {
-                            if (_bookmarkedIds.contains(c.id)) {
-                              _bookmarkedIds.remove(c.id);
-                            } else {
-                              _bookmarkedIds.add(c.id);
-                            }
-                          });
-                        },
-                        onShare: () {},
-                      );
-                    },
-                  ),
+                  child: filtered.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final c = filtered[i];
+                            return _CommunityCard(
+                              community: c,
+                              isJoined: _joinedIds.contains(c.id),
+                              isRequested: _requestedIds.contains(c.id),
+                              isBookmarked: _bookmarkedIds.contains(c.id),
+                              onJoin: () => _handleJoin(c),
+                              onBookmark: () {
+                                setState(() {
+                                  if (_bookmarkedIds.contains(c.id)) {
+                                    _bookmarkedIds.remove(c.id);
+                                  } else {
+                                    _bookmarkedIds.add(c.id);
+                                  }
+                                });
+                              },
+                              onShare: () => _showShareSheet(c.name),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -1013,4 +1229,50 @@ class _Community {
   final List<String> categories;
   final String description;
   final List<Color> gradientColors;
+}
+
+// ─── Share Option ─────────────────────────────────────────────────────────────
+
+class _CommShareOption extends StatelessWidget {
+  const _CommShareOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.4)),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
