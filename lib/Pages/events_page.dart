@@ -61,7 +61,7 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Future<void> _openCreateEventDialog() async {
-    await showGeneralDialog<void>(
+    final created = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Create event',
@@ -79,6 +79,10 @@ class _EventsPageState extends State<EventsPage> {
         );
       },
     );
+    if (created == true) {
+      setState(() { _loading = true; _error = null; });
+      _loadEvents();
+    }
   }
 
   @override
@@ -433,6 +437,31 @@ class _EventCard extends StatefulWidget {
 
 class _EventCardState extends State<_EventCard> {
   bool _hovered = false;
+  bool _booking = false;
+  bool _booked = false;
+
+  Future<void> _book() async {
+    if (_booking || _booked) return;
+    setState(() => _booking = true);
+    try {
+      await EventService.bookEvent(widget.event.id);
+      if (mounted) setState(() { _booked = true; _booking = false; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Successfully booked!'),
+          backgroundColor: Color(0xFF10B981),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _booking = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Booking failed: ${e.toString()}'),
+          backgroundColor: const Color(0xFFEF4444),
+        ));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -567,20 +596,32 @@ class _EventCardState extends State<_EventCard> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                // TODO(firebase): Connect RSVP/booking flow to Firestore and payments.
-                              },
+                              onPressed: _booking || _booked ? null : _book,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF7A18),
+                                backgroundColor: _booked
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFFF7A18),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor: _booked
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFFF7A18).withValues(alpha: 0.5),
+                                disabledForegroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'RSVP',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
+                              child: _booking
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Text(
+                                      _booked ? 'Booked ✓' : 'RSVP',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700),
+                                    ),
                             ),
                           ),
                         ],
@@ -696,6 +737,50 @@ class _CreateEventDialog extends StatefulWidget {
 class _CreateEventDialogState extends State<_CreateEventDialog> {
   bool _isPaid = false;
   bool _isOnline = true;
+  bool _creating = false;
+
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _attendeesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _locationController.dispose();
+    _attendeesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final title = _nameController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter an event name'),
+        backgroundColor: Color(0xFFEF4444),
+      ));
+      return;
+    }
+    setState(() => _creating = true);
+    try {
+      await EventService.createEvent(
+        title: title,
+        description: _descController.text.trim(),
+        location: _locationController.text.trim(),
+        capacity: int.tryParse(_attendeesController.text.trim()) ?? 0,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _creating = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to create: ${e.toString()}'),
+          backgroundColor: const Color(0xFFEF4444),
+        ));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -769,16 +854,20 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                         spacing: 14,
                         runSpacing: 14,
                         children: [
-                          const _FormFieldBlock(
-                            label: 'Event name',
-                            child: _StyledTextField(hint: 'Enter event name'),
+                          _FormFieldBlock(
+                            label: 'Event name *',
+                            child: _StyledTextField(
+                              hint: 'Enter event name',
+                              controller: _nameController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Description',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'What will attendees experience?',
                               maxLines: 4,
+                              controller: _descController,
                             ),
                           ),
                           const _FormFieldBlock(
@@ -822,6 +911,7 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                               hint: _isOnline
                                   ? 'Zoom / Google Meet link'
                                   : 'Full venue address',
+                              controller: _locationController,
                             ),
                           ),
                           const _FormFieldBlock(
@@ -830,11 +920,12 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                               hint: 'Summit / AI / Design / Community',
                             ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Expected attendees',
                             child: _StyledTextField(
                               hint: 'e.g. 200',
                               keyboardType: TextInputType.number,
+                              controller: _attendeesController,
                             ),
                           ),
                           _FormFieldBlock(
@@ -899,13 +990,12 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
-                            // TODO(firebase): Create event document and upload cover image.
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: _creating ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF7A18),
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                const Color(0xFFFF7A18).withValues(alpha: 0.5),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 12,
@@ -914,7 +1004,14 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text('Create Event'),
+                          child: _creating
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Create Event'),
                         ),
                       ],
                     ),
@@ -972,15 +1069,18 @@ class _StyledTextField extends StatelessWidget {
     required this.hint,
     this.maxLines = 1,
     this.keyboardType,
+    this.controller,
   });
 
   final String hint;
   final int maxLines;
   final TextInputType? keyboardType;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       style: const TextStyle(color: Colors.white),
@@ -1039,6 +1139,7 @@ class _UploadPlaceholder extends StatelessWidget {
 
 class _EventItem {
   const _EventItem({
+    required this.id,
     required this.name,
     required this.description,
     required this.organizer,
@@ -1052,6 +1153,7 @@ class _EventItem {
     required this.isOnline,
   });
 
+  final int id;
   final String name;
   final String description;
   final String organizer;
@@ -1065,6 +1167,7 @@ class _EventItem {
   final bool isOnline;
 
   factory _EventItem.fromModel(EventModel m) => _EventItem(
+        id: m.id,
         name: m.title,
         description: m.description ?? '',
         organizer: 'Flame',

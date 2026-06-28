@@ -61,7 +61,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
   }
 
   Future<void> _openCreateWorkshopPanel() async {
-    await showGeneralDialog<void>(
+    final created = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Create workshop',
@@ -79,6 +79,10 @@ class _WorkshopPageState extends State<WorkshopPage> {
         );
       },
     );
+    if (created == true) {
+      setState(() { _loading = true; _error = null; });
+      _loadWorkshops();
+    }
   }
 
   @override
@@ -394,6 +398,31 @@ class _WorkshopCard extends StatefulWidget {
 
 class _WorkshopCardState extends State<_WorkshopCard> {
   bool _hovered = false;
+  bool _booking = false;
+  bool _booked = false;
+
+  Future<void> _book() async {
+    if (_booking || _booked) return;
+    setState(() => _booking = true);
+    try {
+      await WorkshopService.bookWorkshop(widget.workshop.id);
+      if (mounted) setState(() { _booked = true; _booking = false; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Workshop booked successfully!'),
+          backgroundColor: Color(0xFF10B981),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _booking = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Booking failed: ${e.toString()}'),
+          backgroundColor: const Color(0xFFEF4444),
+        ));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -510,20 +539,32 @@ class _WorkshopCardState extends State<_WorkshopCard> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                // TODO(firebase): Connect booking flow to Firestore and payments.
-                              },
+                              onPressed: _booking || _booked ? null : _book,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF7A18),
+                                backgroundColor: _booked
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFFF7A18),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor: _booked
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFFF7A18).withValues(alpha: 0.5),
+                                disabledForegroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Book',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
+                              child: _booking
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Text(
+                                      _booked ? 'Booked ✓' : 'Book',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700),
+                                    ),
                             ),
                           ),
                         ],
@@ -607,6 +648,50 @@ class _CreateWorkshopDialog extends StatefulWidget {
 class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
   bool _isPaid = false;
   String _paymentMethod = 'Credit card';
+  bool _creating = false;
+
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _seatsController = TextEditingController();
+  final _locationController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _seatsController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final title = _nameController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter a workshop name'),
+        backgroundColor: Color(0xFFEF4444),
+      ));
+      return;
+    }
+    setState(() => _creating = true);
+    try {
+      await WorkshopService.createWorkshop(
+        title: title,
+        description: _descController.text.trim(),
+        location: _locationController.text.trim(),
+        capacity: int.tryParse(_seatsController.text.trim()) ?? 0,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _creating = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to create: ${e.toString()}'),
+          backgroundColor: const Color(0xFFEF4444),
+        ));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -680,16 +765,20 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         spacing: 14,
                         runSpacing: 14,
                         children: [
-                          const _FormFieldBlock(
-                            label: 'Workshop name',
-                            child: _StyledTextField(hint: 'Enter workshop name'),
+                          _FormFieldBlock(
+                            label: 'Workshop name *',
+                            child: _StyledTextField(
+                              hint: 'Enter workshop name',
+                              controller: _nameController,
+                            ),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Workshop description',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Describe what participants will learn',
                               maxLines: 4,
+                              controller: _descController,
                             ),
                           ),
                           const _FormFieldBlock(
@@ -697,11 +786,12 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             wide: true,
                             child: _UploadPlaceholder(),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Number of seats',
                             child: _StyledTextField(
                               hint: 'e.g. 30',
                               keyboardType: TextInputType.number,
+                              controller: _seatsController,
                             ),
                           ),
                           const _FormFieldBlock(
@@ -763,11 +853,12 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                             label: 'Category',
                             child: _StyledTextField(hint: 'Design / AI / Business'),
                           ),
-                          const _FormFieldBlock(
+                          _FormFieldBlock(
                             label: 'Location or online link',
                             wide: true,
                             child: _StyledTextField(
                               hint: 'Venue address or meeting link',
+                              controller: _locationController,
                             ),
                           ),
                           const _FormFieldBlock(
@@ -803,13 +894,12 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
-                            // TODO(firebase): Create workshop document and upload cover image.
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: _creating ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF7A18),
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                const Color(0xFFFF7A18).withValues(alpha: 0.5),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 12,
@@ -818,7 +908,14 @@ class _CreateWorkshopDialogState extends State<_CreateWorkshopDialog> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text('Create Workshop'),
+                          child: _creating
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Create Workshop'),
                         ),
                       ],
                     ),
@@ -873,15 +970,18 @@ class _StyledTextField extends StatelessWidget {
     required this.hint,
     this.maxLines = 1,
     this.keyboardType,
+    this.controller,
   });
 
   final String hint;
   final int maxLines;
   final TextInputType? keyboardType;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       style: const TextStyle(color: Colors.white),
@@ -1039,6 +1139,7 @@ class _EmptyState extends StatelessWidget {
 
 class _WorkshopItem {
   const _WorkshopItem({
+    required this.id,
     required this.name,
     required this.description,
     required this.creator,
@@ -1052,6 +1153,7 @@ class _WorkshopItem {
     required this.imageUrl,
   });
 
+  final int id;
   final String name;
   final String description;
   final String creator;
@@ -1065,6 +1167,7 @@ class _WorkshopItem {
   final String imageUrl;
 
   factory _WorkshopItem.fromModel(WorkshopModel m) => _WorkshopItem(
+        id: m.id,
         name: m.title,
         description: m.description ?? '',
         creator: 'Flame',

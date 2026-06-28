@@ -78,10 +78,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Your session may have expired. Please log out and log in again.',
+                Text(
+                  _error ?? '',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+                  style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
