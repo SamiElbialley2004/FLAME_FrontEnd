@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../services/chat_service.dart';
+import '../services/user_service.dart';
 
 class MessagingScreen extends StatefulWidget {
   const MessagingScreen({super.key});
@@ -12,22 +14,41 @@ class _MessagingScreenState extends State<MessagingScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
-  final List<_Conversation> _convos = [
-    _Conversation(id: 0, name: 'Dr. Amina', avatar: 'DA', lastMessage: 'Thanks for the feedback on the reel!', time: '2m', unread: 2, online: true),
-    _Conversation(id: 1, name: 'DesignWithSam', avatar: 'DS', lastMessage: 'Can you share the Figma file?', time: '14m', unread: 0, online: true),
-    _Conversation(id: 2, name: 'Ibrahim N.', avatar: 'IN', lastMessage: 'See you at the workshop tomorrow 👍', time: '1h', unread: 0, online: false),
-    _Conversation(id: 3, name: 'Finance Lab', avatar: 'FL', lastMessage: 'New video dropping Friday!', time: '3h', unread: 1, online: false),
-    _Conversation(id: 4, name: 'Kareem T.', avatar: 'KT', lastMessage: 'Would love to collaborate sometime', time: '1d', unread: 0, online: false),
-    _Conversation(id: 5, name: 'Mona H.', avatar: 'MH', lastMessage: 'Booked your workshop!', time: '2d', unread: 0, online: true),
-  ];
+  List<InboxItem> _inbox = [];
+  bool _loading = true;
+  String? _error;
+  int _myId = 0;
 
-  List<_Conversation> get _filtered => _query.isEmpty ? _convos : _convos.where((c) => c.name.toLowerCase().contains(_query)).toList();
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final me = await UserService.getMe();
+      final inbox = await ChatService.getInbox();
+      if (!mounted) return;
+      setState(() {
+        _inbox = inbox;
+        _myId = me.id;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
+
+  List<InboxItem> get _filtered =>
+      _query.isEmpty ? _inbox : _inbox.where((c) => c.otherUser.displayName.toLowerCase().contains(_query)).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +70,6 @@ class _MessagingScreenState extends State<MessagingScreen> {
                       const SizedBox(width: 12),
                       const Text('Messages', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
                       const Spacer(),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          width: 38, height: 38,
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.07), shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
-                          child: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -81,17 +94,35 @@ class _MessagingScreenState extends State<MessagingScreen> {
                 ),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: convos.isEmpty
-                      ? const Center(child: Text('No conversations found', style: TextStyle(color: Color(0xFF6B7280))))
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: convos.length,
-                          separatorBuilder: (_, _) => Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-                          itemBuilder: (_, i) => _ConvoTile(
-                            convo: convos[i],
-                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatScreen(convo: convos[i]))),
-                          ),
-                        ),
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF7A18)))
+                      : _error != null
+                          ? Center(
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.error_outline, color: Colors.white38, size: 48),
+                                const SizedBox(height: 12),
+                                Text(_error!, style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13)),
+                                const SizedBox(height: 16),
+                                ElevatedButton(onPressed: _load, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18)), child: const Text('Retry', style: TextStyle(color: Colors.white))),
+                              ]),
+                            )
+                          : convos.isEmpty
+                              ? const Center(child: Text('No conversations yet', style: TextStyle(color: Color(0xFF6B7280))))
+                              : RefreshIndicator(
+                                  onRefresh: _load,
+                                  color: const Color(0xFFFF7A18),
+                                  child: ListView.separated(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    itemCount: convos.length,
+                                    separatorBuilder: (_, _) => Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                                    itemBuilder: (_, i) => _ConvoTile(
+                                      item: convos[i],
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(builder: (_) => ChatScreen(otherUser: convos[i].otherUser, myId: _myId)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                 ),
               ],
             ),
@@ -103,9 +134,9 @@ class _MessagingScreenState extends State<MessagingScreen> {
 }
 
 class _ConvoTile extends StatelessWidget {
-  const _ConvoTile({required this.convo, required this.onTap});
+  const _ConvoTile({required this.item, required this.onTap});
 
-  final _Conversation convo;
+  final InboxItem item;
   final VoidCallback onTap;
 
   @override
@@ -113,49 +144,27 @@ class _ConvoTile extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
       onTap: onTap,
-      leading: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.2),
-            child: Text(convo.avatar, style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800, fontSize: 16)),
-          ),
-          if (convo.online)
-            Positioned(
-              bottom: 1, right: 1,
-              child: Container(
-                width: 12, height: 12,
-                decoration: BoxDecoration(color: const Color(0xFF10B981), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF09090B), width: 2)),
-              ),
-            ),
-        ],
+      leading: CircleAvatar(
+        radius: 26,
+        backgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.2),
+        child: Text(item.otherUser.initials, style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800, fontSize: 16)),
       ),
-      title: Text(convo.name, style: TextStyle(color: Colors.white, fontWeight: convo.unread > 0 ? FontWeight.w700 : FontWeight.w600)),
-      subtitle: Text(convo.lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: convo.unread > 0 ? const Color(0xFFD1D5DB) : const Color(0xFF6B7280), fontSize: 13)),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(convo.time, style: TextStyle(color: convo.unread > 0 ? const Color(0xFFFF7A18) : const Color(0xFF6B7280), fontSize: 12)),
-          if (convo.unread > 0) ...[
-            const SizedBox(height: 4),
-            Container(
-              width: 20, height: 20,
-              decoration: const BoxDecoration(color: Color(0xFFFF7A18), shape: BoxShape.circle),
-              child: Center(child: Text('${convo.unread}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
-            ),
-          ],
-        ],
-      ),
+      title: Text(item.otherUser.displayName, style: TextStyle(color: Colors.white, fontWeight: item.unreadCount > 0 ? FontWeight.w700 : FontWeight.w600)),
+      subtitle: Text(item.lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: item.unreadCount > 0 ? const Color(0xFFD1D5DB) : const Color(0xFF6B7280), fontSize: 13)),
+      trailing: item.unreadCount > 0
+          ? Container(width: 20, height: 20, decoration: const BoxDecoration(color: Color(0xFFFF7A18), shape: BoxShape.circle), child: Center(child: Text('${item.unreadCount}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))))
+          : null,
     );
   }
 }
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.convo});
+// ─── Chat Screen ─────────────────────────────────────────────────────────────
 
-  final _Conversation convo;
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key, required this.otherUser, required this.myId});
+
+  final ChatUser otherUser;
+  final int myId;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -165,32 +174,51 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  late final List<_Message> _messages;
+  List<ChatMessage> _messages = [];
+  bool _loading = true;
+  bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    _messages = [
-      _Message(text: 'Hey! Loved your latest video 🔥', isMine: false, time: '10:20 AM'),
-      _Message(text: 'Thanks so much! Glad it was helpful.', isMine: true, time: '10:22 AM'),
-      _Message(text: 'Would you ever do a longer workshop on this topic?', isMine: false, time: '10:24 AM'),
-      _Message(text: 'Definitely! I\'m planning one for next month.', isMine: true, time: '10:25 AM'),
-      _Message(text: widget.convo.lastMessage, isMine: false, time: '10:30 AM'),
-    ];
+    _loadMessages();
   }
 
-  void _send() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(_Message(text: text, isMine: true, time: 'Now'));
-      _controller.clear();
-    });
+  Future<void> _loadMessages() async {
+    try {
+      final msgs = await ChatService.getConversation(widget.otherUser.id, widget.myId);
+      if (mounted) setState(() { _messages = msgs; _loading = false; });
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
+  }
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
+    _controller.clear();
+    setState(() => _sending = true);
+    try {
+      final msg = await ChatService.sendMessage(widget.otherUser.id, text, widget.myId);
+      if (mounted) {
+        setState(() { _messages.add(msg); _sending = false; });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _sending = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e'), backgroundColor: const Color(0xFFEF4444)));
+      }
+    }
   }
 
   @override
@@ -215,28 +243,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   _BackButton(onTap: () => Navigator.of(context).pop()),
                   const SizedBox(width: 10),
-                  Stack(children: [
-                    CircleAvatar(radius: 20, backgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.2), child: Text(widget.convo.avatar, style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800))),
-                    if (widget.convo.online) Positioned(bottom: 1, right: 1, child: Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF10B981), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF09090B), width: 2)))),
-                  ]),
+                  CircleAvatar(radius: 20, backgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.2), child: Text(widget.otherUser.initials, style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800))),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.convo.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                      Text(widget.convo.online ? 'Online' : 'Offline', style: TextStyle(color: widget.convo.online ? const Color(0xFF10B981) : const Color(0xFF6B7280), fontSize: 12)),
-                    ],
-                  ),
+                  Text(widget.otherUser.displayName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length,
-                itemBuilder: (_, i) => _ChatBubble(msg: _messages[i]),
-              ),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF7A18)))
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length,
+                      itemBuilder: (_, i) => _ChatBubble(msg: _messages[i]),
+                    ),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(12, 8, 12, 10 + bottom),
@@ -264,7 +285,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Container(
                       width: 42, height: 42,
                       decoration: const BoxDecoration(color: Color(0xFFFF7A18), shape: BoxShape.circle),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      child: _sending
+                          ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+                          : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -280,7 +303,7 @@ class _ChatScreenState extends State<ChatScreen> {
 class _ChatBubble extends StatelessWidget {
   const _ChatBubble({required this.msg});
 
-  final _Message msg;
+  final ChatMessage msg;
 
   @override
   Widget build(BuildContext context) {
@@ -309,10 +332,10 @@ class _ChatBubble extends StatelessWidget {
                       bottomRight: Radius.circular(msg.isMine ? 4 : 18),
                     ),
                   ),
-                  child: Text(msg.text, style: TextStyle(color: msg.isMine ? Colors.white : const Color(0xFFD1D5DB), fontSize: 14, height: 1.4)),
+                  child: Text(msg.content, style: TextStyle(color: msg.isMine ? Colors.white : const Color(0xFFD1D5DB), fontSize: 14, height: 1.4)),
                 ),
                 const SizedBox(height: 3),
-                Text(msg.time, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 11)),
+                Text(msg.sentAt, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 11)),
               ],
             ),
           ),
@@ -320,22 +343,6 @@ class _ChatBubble extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Conversation {
-  const _Conversation({required this.id, required this.name, required this.avatar, required this.lastMessage, required this.time, required this.unread, required this.online});
-
-  final int id;
-  final String name, avatar, lastMessage, time;
-  final int unread;
-  final bool online;
-}
-
-class _Message {
-  const _Message({required this.text, required this.isMine, required this.time});
-
-  final String text, time;
-  final bool isMine;
 }
 
 class _GlowOrb extends StatelessWidget {

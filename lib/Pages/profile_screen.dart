@@ -15,6 +15,7 @@ import 'moderation_panel_screen.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
+import '../services/follow_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -121,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 18),
                       _ProfileActions(user: _user),
                       const SizedBox(height: 18),
-                      const _StatsSection(),
+                      _StatsSection(userId: _user?.id),
                       const SizedBox(height: 18),
                       const _CreatorCard(),
                       const SizedBox(height: 18),
@@ -428,8 +429,47 @@ class _ProfileActions extends StatelessWidget {
   }
 }
 
-class _StatsSection extends StatelessWidget {
-  const _StatsSection();
+class _StatsSection extends StatefulWidget {
+  const _StatsSection({this.userId});
+  final int? userId;
+
+  @override
+  State<_StatsSection> createState() => _StatsSectionState();
+}
+
+class _StatsSectionState extends State<_StatsSection> {
+  int _followers = 0;
+  int _following = 0;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.userId != null) _loadCounts();
+  }
+
+  Future<void> _loadCounts() async {
+    try {
+      final results = await Future.wait([
+        FollowService.getFollowers(widget.userId!),
+        FollowService.getFollowing(widget.userId!),
+      ]);
+      if (mounted) {
+        setState(() {
+          _followers = results[0].length;
+          _following = results[1].length;
+          _loaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loaded = true);
+    }
+  }
+
+  String _fmt(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return '$n';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,15 +481,15 @@ class _StatsSection extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowersScreen(initialTab: 1))),
-            child: const _StatItem(title: 'Following', value: '500'),
+            child: _StatItem(title: 'Following', value: _loaded ? _fmt(_following) : '—'),
           ),
           const _Divider(),
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowersScreen(initialTab: 0))),
-            child: const _StatItem(title: 'Followers', value: '1.2K'),
+            child: _StatItem(title: 'Followers', value: _loaded ? _fmt(_followers) : '—'),
           ),
           const _Divider(),
-          const _StatItem(title: 'Learned', value: '54'),
+          const _StatItem(title: 'Learned', value: '—'),
         ],
       ),
     );
@@ -457,6 +497,7 @@ class _StatsSection extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
+  // ignore: use_super_parameters
   const _StatItem({required this.title, required this.value});
 
   final String title;

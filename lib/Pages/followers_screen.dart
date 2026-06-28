@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../services/follow_service.dart';
+import '../services/user_service.dart';
 
 class FollowersScreen extends StatefulWidget {
   const FollowersScreen({super.key, this.initialTab = 0});
@@ -14,35 +16,43 @@ class _FollowersScreenState extends State<FollowersScreen> with SingleTickerProv
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  final Set<int> _following = {1, 3, 4};
 
-  final List<_UserEntry> _followers = [
-    _UserEntry(id: 0, name: 'Dr. Amina', username: '@dramina', category: 'AI & Learning', followers: '28K'),
-    _UserEntry(id: 1, name: 'DesignWithSam', username: '@designwithsam', category: 'Design', followers: '15K'),
-    _UserEntry(id: 2, name: 'Finance Lab', username: '@financelab', category: 'Finance', followers: '41K'),
-    _UserEntry(id: 3, name: 'Ibrahim N.', username: '@ibrahimn', category: 'AI & Product', followers: '9.3K'),
-    _UserEntry(id: 4, name: 'Kareem T.', username: '@kareemt', category: 'Design', followers: '5.1K'),
-    _UserEntry(id: 5, name: 'Mona H.', username: '@monah', category: 'Business', followers: '12K'),
-  ];
-
-  final List<_UserEntry> _followingList = [
-    _UserEntry(id: 1, name: 'DesignWithSam', username: '@designwithsam', category: 'Design', followers: '15K'),
-    _UserEntry(id: 3, name: 'Ibrahim N.', username: '@ibrahimn', category: 'AI & Product', followers: '9.3K'),
-    _UserEntry(id: 4, name: 'Kareem T.', username: '@kareemt', category: 'Design', followers: '5.1K'),
-    _UserEntry(id: 6, name: 'CodeWithAhmed', username: '@codeahmed', category: 'Tech', followers: '7.8K'),
-    _UserEntry(id: 7, name: 'Samy E.', username: '@samyelsa', category: 'Business', followers: '3.2K'),
-  ];
-
-  List<_UserEntry> _filter(List<_UserEntry> list) {
-    if (_query.isEmpty) return list;
-    return list.where((u) => u.name.toLowerCase().contains(_query) || u.username.toLowerCase().contains(_query)).toList();
-  }
+  List<FollowUser> _followers = [];
+  List<FollowUser> _following = [];
+  bool _loading = true;
+  String? _error;
+  int _myId = 0;
+  final Set<int> _followingIds = {};
+  final Set<int> _processingIds = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
-    _following.addAll(_followingList.map((u) => u.id));
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final me = await UserService.getMe();
+      final results = await Future.wait([
+        FollowService.getFollowers(me.id),
+        FollowService.getFollowing(me.id),
+      ]);
+      if (!mounted) return;
+      final followers = results[0];
+      final following = results[1];
+      setState(() {
+        _myId = me.id;
+        _followers = followers;
+        _following = following;
+        _followingIds.addAll(following.map((u) => u.id));
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
   }
 
   @override
@@ -50,6 +60,31 @@ class _FollowersScreenState extends State<FollowersScreen> with SingleTickerProv
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  List<FollowUser> _filter(List<FollowUser> list) {
+    if (_query.isEmpty) return list;
+    return list.where((u) => u.displayName.toLowerCase().contains(_query)).toList();
+  }
+
+  Future<void> _toggleFollow(int targetId) async {
+    if (_processingIds.contains(targetId)) return;
+    setState(() => _processingIds.add(targetId));
+    try {
+      if (_followingIds.contains(targetId)) {
+        await FollowService.unfollow(targetId);
+        if (mounted) setState(() => _followingIds.remove(targetId));
+      } else {
+        await FollowService.follow(targetId);
+        if (mounted) setState(() => _followingIds.add(targetId));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFEF4444)));
+      }
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(targetId));
+    }
   }
 
   @override
@@ -69,52 +104,66 @@ class _FollowersScreenState extends State<FollowersScreen> with SingleTickerProv
                     children: [
                       _BackButton(onTap: () => Navigator.of(context).pop()),
                       const SizedBox(width: 12),
-                      const Text('Jana Amr', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                      const Text('My Network', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: const Color(0xFFFF7A18),
-                  indicatorWeight: 2,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: const Color(0xFF6B7280),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-                  dividerColor: Colors.white.withValues(alpha: 0.08),
-                  tabs: [
-                    Tab(text: 'Followers (${_followers.length})'),
-                    Tab(text: 'Following (${_followingList.length})'),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() => _query = v.toLowerCase()),
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: const TextStyle(color: Color(0xFF6B7280)),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6B7280)),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.06),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFFF7A18), width: 1.1)),
+                if (_loading)
+                  const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFFF7A18))))
+                else if (_error != null)
+                  Expanded(
+                    child: Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_error!, style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(onPressed: _load, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A18)), child: const Text('Retry', style: TextStyle(color: Colors.white))),
+                      ]),
+                    ),
+                  )
+                else ...[
+                  TabBar(
+                    controller: _tabController,
+                    indicatorColor: const Color(0xFFFF7A18),
+                    indicatorWeight: 2,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: const Color(0xFF6B7280),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    dividerColor: Colors.white.withValues(alpha: 0.08),
+                    tabs: [
+                      Tab(text: 'Followers (${_followers.length})'),
+                      Tab(text: 'Following (${_following.length})'),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _query = v.toLowerCase()),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search',
+                        hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6B7280)),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.06),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFFF7A18), width: 1.1)),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _UserList(users: _filter(_followers), following: _following, onToggle: (id) => setState(() => _following.contains(id) ? _following.remove(id) : _following.add(id))),
-                      _UserList(users: _filter(_followingList), following: _following, onToggle: (id) => setState(() => _following.contains(id) ? _following.remove(id) : _following.add(id))),
-                    ],
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _UserList(users: _filter(_followers), followingIds: _followingIds, processingIds: _processingIds, myId: _myId, onToggle: _toggleFollow),
+                        _UserList(users: _filter(_following), followingIds: _followingIds, processingIds: _processingIds, myId: _myId, onToggle: _toggleFollow),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -125,10 +174,12 @@ class _FollowersScreenState extends State<FollowersScreen> with SingleTickerProv
 }
 
 class _UserList extends StatelessWidget {
-  const _UserList({required this.users, required this.following, required this.onToggle});
+  const _UserList({required this.users, required this.followingIds, required this.processingIds, required this.myId, required this.onToggle});
 
-  final List<_UserEntry> users;
-  final Set<int> following;
+  final List<FollowUser> users;
+  final Set<int> followingIds;
+  final Set<int> processingIds;
+  final int myId;
   final ValueChanged<int> onToggle;
 
   @override
@@ -142,7 +193,9 @@ class _UserList extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final u = users[i];
-        final isFollowing = following.contains(u.id);
+        final isMe = u.id == myId;
+        final isFollowing = followingIds.contains(u.id);
+        final processing = processingIds.contains(u.id);
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
@@ -159,34 +212,33 @@ class _UserList extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: const Color(0xFFFF7A18).withValues(alpha: 0.2),
-                    child: Text(u.name[0], style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800, fontSize: 18)),
+                    child: Text(u.initials.isNotEmpty ? u.initials : '?', style: const TextStyle(color: Color(0xFFFF7A18), fontWeight: FontWeight.w800, fontSize: 18)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(u.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                      Text(u.username, style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)),
-                      const SizedBox(height: 3),
-                      Text('${u.followers} followers  ·  ${u.category}', style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11)),
-                    ]),
+                    child: Text(u.displayName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => onToggle(u.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isFollowing ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFFF7A18),
-                        borderRadius: BorderRadius.circular(12),
-                        border: isFollowing ? Border.all(color: Colors.white.withValues(alpha: 0.15)) : null,
-                      ),
-                      child: Text(
-                        isFollowing ? 'Following' : 'Follow',
-                        style: TextStyle(color: isFollowing ? const Color(0xFFB2B8CB) : Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                    ),
-                  ),
+                  if (!isMe) ...[
+                    const SizedBox(width: 8),
+                    processing
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF7A18)))
+                        : GestureDetector(
+                            onTap: () => onToggle(u.id),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isFollowing ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFFF7A18),
+                                borderRadius: BorderRadius.circular(12),
+                                border: isFollowing ? Border.all(color: Colors.white.withValues(alpha: 0.15)) : null,
+                              ),
+                              child: Text(
+                                isFollowing ? 'Following' : 'Follow',
+                                style: TextStyle(color: isFollowing ? const Color(0xFFB2B8CB) : Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                  ],
                 ],
               ),
             ),
@@ -195,13 +247,6 @@ class _UserList extends StatelessWidget {
       },
     );
   }
-}
-
-class _UserEntry {
-  const _UserEntry({required this.id, required this.name, required this.username, required this.category, required this.followers});
-
-  final int id;
-  final String name, username, category, followers;
 }
 
 class _GlowOrb extends StatelessWidget {
